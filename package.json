@@ -1,0 +1,36 @@
+{
+  "name": "nebiusrelay",
+  "version": "0.7.3",
+  "private": true,
+  "description": "Use Nebius Token Factory models in Claude Code, OpenCode, Codex, and Pi Code",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r build",
+    "build:bundle": "bash scripts/build-bundle.sh",
+    "build:site": "pnpm build:bundle && pnpm --dir site exec convex codegen --typecheck disable && pnpm --filter @nebiusrelay/site build",
+    "build:site:preview": "pnpm build:bundle && pnpm --filter @nebiusrelay/site build",
+    "bump-version": "bash scripts/bump-version.sh",
+    "dev": "pnpm -F @nebiusrelay/cli dev",
+    "dev:site": "pnpm --filter @nebiusrelay/site dev",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "hooks:install": "lefthook install",
+    "test": "pnpm -F @nebiusrelay/tests test",
+    "bench:proxy": "pnpm -F @nebiusrelay/tests bench:proxy",
+    "capture:proxy-fixtures": "pnpm -F @nebiusrelay/tests capture:proxy-fixtures",
+    "watch": "pnpm dev",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "lefthook": "2.1.9",
+    "oxfmt": "0.57.0",
+    "turbo": "^2.10.1",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@11.9.0"
+}

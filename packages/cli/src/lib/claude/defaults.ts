@@ -1,0 +1,60 @@
+import {
+  GLM_5_2,
+  GLM_5_2_ANTHROPIC_CAPABILITIES,
+  KIMI_K2_7_CODE,
+  SELECTABLE_MODELS,
+  resolveModelByKeys,
+  type ModelDefinition,
+} from "@nebiusrelay/models";
+
+export const CLAUDE_LOCAL_PROXY_HOST = "127.0.0.1";
+export const CLAUDE_MODEL_CAPABILITIES = GLM_5_2_ANTHROPIC_CAPABILITIES;
+
+export type ClaudeModelSelection = {
+  alias: string;
+  definition: ModelDefinition;
+};
+
+export const CLAUDE_HAIKU_MODEL = KIMI_K2_7_CODE;
+export const CLAUDE_HAIKU_MODEL_SELECTION: ClaudeModelSelection = {
+  alias: CLAUDE_HAIKU_MODEL.anthropicAlias ?? CLAUDE_HAIKU_MODEL.id,
+  definition: CLAUDE_HAIKU_MODEL,
+};
+
+/**
+ * Claude-routable models = every curated flagship plus the lightweight
+ * Haiku-tier backend Claude Code uses for built-in exploration subagents.
+ * Models without a friendly Anthropic alias use their Nebius id directly.
+ */
+const selectableClaudeModels = SELECTABLE_MODELS.map((definition) => ({
+  alias: definition.anthropicAlias ?? definition.id,
+  definition,
+}));
+
+export const CLAUDE_SUPPORTED_MODELS: readonly ClaudeModelSelection[] = [
+  ...selectableClaudeModels,
+  ...(selectableClaudeModels.some(
+    (model) => model.definition.id === CLAUDE_HAIKU_MODEL_SELECTION.definition.id,
+  )
+    ? []
+    : [CLAUDE_HAIKU_MODEL_SELECTION]),
+];
+
+export function resolveClaudeModel(value: string | undefined): ClaudeModelSelection {
+  if (CLAUDE_SUPPORTED_MODELS.length === 0) {
+    throw new Error("No Claude models are configured.");
+  }
+  const found = resolveModelByKeys(
+    CLAUDE_SUPPORTED_MODELS.map((model) => model.definition),
+    value,
+    [(model) => model.anthropicAlias, (model) => model.id],
+    GLM_5_2.id,
+  );
+  if (!found) {
+    const expected = CLAUDE_SUPPORTED_MODELS.map(
+      (model) => `${model.alias} (${model.definition.id})`,
+    ).join(", ");
+    throw new Error(`Unsupported Claude model "${value}". Expected one of: ${expected}.`);
+  }
+  return { alias: found.anthropicAlias ?? found.id, definition: found };
+}

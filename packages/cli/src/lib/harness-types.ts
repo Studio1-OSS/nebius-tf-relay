@@ -1,0 +1,65 @@
+import type { HarnessId } from "./harness.js";
+
+export type HarnessContext = {
+  home: string;
+  apiKey?: string;
+  apiKeyFromFlag?: boolean;
+  main?: string;
+  passthrough?: string[];
+  json?: boolean;
+  restore?: boolean;
+  search?: string;
+  slot?: string;
+};
+
+export type HarnessResult = {
+  message?: string;
+  payload?: Record<string, unknown>;
+};
+
+export type Harness = {
+  id: HarnessId;
+  label: string;
+  run: (ctx: HarnessContext) => Promise<HarnessResult>;
+};
+
+/**
+ * Defines a harness adapter. Throws early (at module load) if a harness is
+ * missing a required method, rather than failing confusingly at dispatch
+ * time.
+ */
+export function defineHarness(impl: Harness): Harness {
+  if (typeof impl.run !== "function") {
+    throw new Error(`Harness "${impl.id}" is missing required method "run"`);
+  }
+  return impl;
+}
+
+/**
+ * The two harness families (#8). The single `Harness.run` signature used to
+ * hide two architecturally different shapes behind one interface:
+ *
+ * - **ProxiedHarness** - Claude, Codex. `run` spawns a daemon-backed proxy: it
+ *   registers a session, starts a keepalive, proxies /v1/* traffic through the
+ *   daemon's Nebius client, tracks cost via a CostTracker, and deregisters
+ *   on exit. The lifecycle lives in `runProxiedSession` (proxied-session.ts).
+ *
+ * - **SpawnedHarness** - OpenCode, Pi. `run` spawns the agent binary directly;
+ *   the binary's own provider plugin talks to Nebius (OpenCode) or reads a
+ *   models.json from disk (Pi). No daemon, no proxy, no CostTracker, no
+ *   keepalive.
+ *
+ * Recording this split in the type system (and in CONTEXT.md) stops the
+ * abstraction from hiding two architectures as one. The orphan "codex-app"
+ * agent id the daemon knows about (absent from HarnessId) is surfaced for
+ * future reconciliation.
+ */
+export type ProxiedHarness = Harness & {
+  /** This harness routes /v1/* traffic through the daemon proxy. */
+  readonly family: "proxied";
+};
+
+export type SpawnedHarness = Harness & {
+  /** This harness spawns the agent binary; the binary talks to Nebius itself. */
+  readonly family: "spawned";
+};

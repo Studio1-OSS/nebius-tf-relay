@@ -1,0 +1,28 @@
+{
+  "name": "@nebiusrelay/cli",
+  "version": "0.7.3",
+  "description": "CLI for routing Claude Code, OpenCode, Codex, and Pi Code through Nebius Token Factory",
+  "license": "MIT",
+  "bin": {
+    "nebiusrelay": "./dist/bin/nebiusrelay.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('node:fs').chmodSync('dist/bin/nebiusrelay.js', 0o755)\"",
+    "dev": "pnpm build && sh -c 'node scripts/watch-bin-mode.mjs & tsc -p tsconfig.json --watch --preserveWatchOutput'",
+    "watch": "pnpm dev",
+    "typecheck": "pnpm --filter @nebiusrelay/models build && tsc -p tsconfig.json --noEmit",
+    "prepack": "pnpm build",
+    "test": "pnpm typecheck"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.8.2",
+    "@nebiusrelay/models": "workspace:*"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
