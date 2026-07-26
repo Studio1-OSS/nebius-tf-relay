@@ -163,7 +163,7 @@ export async function runClaudeNebius(options: ClaudeLaunchOptions): Promise<Cla
       `Nebius TF Relay ▸ Routing Claude Code → Nebius Token Factory (${modelName}). Not Anthropic.\n`,
     buildEnv: ({ proxyUrl, authToken, modelId, modelName }) =>
       buildClaudeEnv({ ...options, modelId, modelName, proxyUrl, authToken }),
-    buildArgs: ({ args: launchArgs }) => buildClaudeLaunchArgs(launchArgs),
+    buildArgs: ({ args: launchArgs, authToken }) => buildClaudeLaunchArgs(launchArgs, authToken),
   });
   return result;
 }
@@ -177,11 +177,11 @@ export function claudeRunsInBackground(args: string[]): boolean {
   return args.some((arg) => arg === "--bg" || arg === "--background");
 }
 
-export function buildClaudeLaunchArgs(args: string[]): string[] {
+export function buildClaudeLaunchArgs(args: string[], authToken?: string): string[] {
   return [
     ...claudeArgsWithoutModelOverrides(args),
     ...claudeCacheFriendlyArgs(args),
-    ...claudeExtraSettingsArgs(args),
+    ...claudeExtraSettingsArgs(args, authToken),
   ];
 }
 
@@ -232,7 +232,7 @@ function claudeCacheFriendlyArgs(args: string[]): string[] {
 // `--settings <json>` flag, which *merges* into the user's existing settings
 // rather than replacing them. We bail out entirely if the user already passed
 // `--settings` themselves, so we never clobber their explicit config.
-function claudeExtraSettingsArgs(args: string[]): string[] {
+function claudeExtraSettingsArgs(args: string[], authToken?: string): string[] {
   for (const arg of args) {
     if (arg === "--settings" || arg.startsWith("--settings=")) {
       return [];
@@ -248,14 +248,26 @@ function claudeExtraSettingsArgs(args: string[]): string[] {
   // attribution: nebiusrelay runs Nebius models inside the Claude Code harness,
   // so Claude's default generated-by text and Co-Authored-By trailer would
   // identify the wrong model. Keep both commits and PRs unattributed.
-  return [
-    "--settings",
-    JSON.stringify({
-      skipWebFetchPreflight: true,
-      attribution: {
-        commit: "",
-        pr: "",
-      },
-    }),
-  ];
+  //
+  // apiKeyHelper: force Claude Code into API-key mode (the helper's output is
+  // used as the api key, sent to our local proxy which accepts x-api-key). This
+  // is what makes nebiusrelay work for users whose ORG DISABLED Claude Code for
+  // the claude.ai subscription: in OAuth/subscription mode Claude Code runs an
+  // org-eligibility check at startup and hard-blocks with "Your organization
+  // has disabled Claude subscription access" - even though we only want to talk
+  // to the local proxy. apiKeyHelper is explicit config, so it never triggers
+  // the "detected a custom API key" prompt and never reads OAuth/keychain. The
+  // token is a local, per-session proxy credential (not the Nebius key), so
+  // passing it via a shell echo is low-risk.
+  const settings: Record<string, unknown> = {
+    skipWebFetchPreflight: true,
+    attribution: {
+      commit: "",
+      pr: "",
+    },
+  };
+  if (authToken) {
+    settings.apiKeyHelper = `printf %s ${JSON.stringify(authToken)}`;
+  }
+  return ["--settings", JSON.stringify(settings)];
 }

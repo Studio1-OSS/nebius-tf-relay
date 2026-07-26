@@ -159,11 +159,6 @@ export async function runDaemon(options: DaemonOptions = {}): Promise<void> {
   activeSessions = options.sessions ?? defaultSessions;
   const restored = await activeSessions.restorePersisted();
 
-  // Load the live Nebius model catalog (modality, pricing, context) so the
-  // proxied harnesses resolve models, serve /v1/models, and cost from what
-  // Nebius actually serves. Best-effort: falls back to the bundled snapshot.
-  await initModelCatalog({ home: os.homedir() });
-
   // Per-request agent context: handleDaemonRequest sets this so the catch-all
   // renders errors in the wire format the client actually speaks. Without it,
   // Codex (Responses API) errors were being mis-rendered as Anthropic errors.
@@ -180,6 +175,18 @@ export async function runDaemon(options: DaemonOptions = {}): Promise<void> {
   });
 
   await listenOrExitOnRace(server, port);
+
+  // Refresh the live Nebius model catalog (modality, pricing, context) in the
+  // background AFTER the socket is open. The daemon serves immediately from the
+  // bundled snapshot; the live list swaps in when the fetch lands. This must
+  // NOT block listen - a slow catalog fetch would otherwise push daemon-ready
+  // past the launcher's health-poll timeout and the client would see
+  // "error sending request for url". Best-effort: never throws.
+  void initModelCatalog({ home: os.homedir() }).then(() => {
+    if (debug) {
+      process.stderr.write(`[nebiusrelay daemon] model catalog loaded.\n`);
+    }
+  });
 
   await mkdir(path.dirname(daemonPidPath()), { recursive: true });
   await writeFile(daemonPidPath(), `${process.pid}\n`, { encoding: "utf8" });

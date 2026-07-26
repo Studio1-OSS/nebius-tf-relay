@@ -21,7 +21,7 @@ import { readJsonIfExists, resolveNebiusApiKey, writeJsonAtomic } from "./nebius
  */
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
-const FETCH_TIMEOUT_MS = 4000;
+const FETCH_TIMEOUT_MS = 3000;
 
 type CatalogCache = {
   fetchedAt: number;
