@@ -181,8 +181,37 @@ export function buildClaudeLaunchArgs(args: string[], authToken?: string): strin
   return [
     ...claudeArgsWithoutModelOverrides(args),
     ...claudeCacheFriendlyArgs(args),
+    ...claudeEffortArgs(args),
     ...claudeExtraSettingsArgs(args, authToken),
   ];
+}
+
+// Because nebiusrelay advertises effort capabilities for GLM-5.2, Claude Code
+// shows its `/effort` selector and defaults it to "medium" - so even "hi" makes
+// GLM-5.2 reason before replying, which is what users see as slow ("Baked for
+// 17s"). Claude Code's `--effort` has no "none"/"minimal" value (only
+// low|medium|high|xhigh|max), so we default the session to the lowest ("low"),
+// keeping the selector functional for users who want to dial reasoning up.
+// Respect an explicit --effort, and honor NEBIUSRELAY_REASONING_EFFORT when it
+// names a value --effort accepts.
+function claudeEffortArgs(args: string[]): string[] {
+  for (const arg of args) {
+    if (arg === "--effort" || arg.startsWith("--effort=")) {
+      return [];
+    }
+    // Headless (`-p`/`--print`) has no `/effort` selector, so Claude Code sends
+    // no effort and the proxy already defaults to a fast "none". Only interactive
+    // sessions get the medium selector default we need to lower, so skip -p.
+    if (arg === "-p" || arg === "--print") {
+      return [];
+    }
+  }
+  const env = process.env.NEBIUSRELAY_REASONING_EFFORT?.toLowerCase();
+  const level =
+    env === "medium" || env === "high" || env === "xhigh" || env === "max" || env === "low"
+      ? env
+      : "low";
+  return ["--effort", level];
 }
 
 function claudeCodeMaxOutputTokensFromEnv(value: string | undefined): number {

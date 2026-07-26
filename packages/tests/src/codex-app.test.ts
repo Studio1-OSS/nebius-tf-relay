@@ -136,8 +136,11 @@ describe("Codex App alpha config", () => {
     expect(first?.display_name).toBe("GLM 5.2 · default");
     expect(first?.shell_type).toBe("shell_command");
     // Reasoning models expose effort levels; non-reasoning models use "none".
-    expect(first?.default_reasoning_level).toBe("medium");
+    // Default to "minimal" (proxy maps it to no reasoning) so trivial turns stay
+    // fast; users can raise it in the picker.
+    expect(first?.default_reasoning_level).toBe("minimal");
     expect(first?.supported_reasoning_levels).toEqual([
+      { effort: "minimal", description: "Fastest; no reasoning before replies" },
       { effort: "low", description: "Fast responses with lighter reasoning" },
       { effort: "medium", description: "Balances speed and reasoning depth" },
       { effort: "high", description: "Greater reasoning depth for complex tasks" },

@@ -50,6 +50,7 @@ export function toCodexModelCatalogEntry(
 ): Record<string, unknown> {
   const reasoningLevels = model.definition.reasoning
     ? [
+        { effort: "minimal", description: "Fastest; no reasoning before replies" },
         { effort: "low", description: "Fast responses with lighter reasoning" },
         { effort: "medium", description: "Balances speed and reasoning depth" },
         { effort: "high", description: "Greater reasoning depth for complex tasks" },
@@ -59,7 +60,11 @@ export function toCodexModelCatalogEntry(
     slug: model.id,
     display_name: model.definition.name,
     description: `Nebius Token Factory model via nebiusrelay (${model.definition.id})`,
-    default_reasoning_level: model.definition.reasoning ? "medium" : "none",
+    // Default GLM-5.2 (and other hybrid reasoners) to "minimal" so trivial turns
+    // stay snappy - the proxy maps minimal->none, i.e. no reasoning before every
+    // reply. Users can raise it in Codex's model picker. Without this, Codex
+    // defaulted to "medium" and even "hi" spent seconds reasoning.
+    default_reasoning_level: model.definition.reasoning ? "minimal" : "none",
     supported_reasoning_levels: reasoningLevels,
     shell_type: "shell_command",
     visibility: "list",

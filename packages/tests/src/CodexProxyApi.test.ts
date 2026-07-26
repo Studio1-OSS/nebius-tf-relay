@@ -562,7 +562,7 @@ describe("Codex Responses proxy tool compatibility", () => {
 
     expect(first?.slug).toBe(GLM_5_2.id);
     expect(first?.display_name).toBe("GLM 5.2 · default");
-    expect(first?.default_reasoning_level).toBe("medium");
+    expect(first?.default_reasoning_level).toBe("minimal");
     expect(first?.default_reasoning_summary).toBe("auto");
     expect(first?.model_messages).toEqual(
       expect.objectContaining({
