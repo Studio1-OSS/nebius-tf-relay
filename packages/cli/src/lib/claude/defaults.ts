@@ -1,8 +1,8 @@
 import {
-  GLM_5_2,
   GLM_5_2_ANTHROPIC_CAPABILITIES,
   KIMI_K2_7_CODE,
-  SELECTABLE_MODELS,
+  getDefaultModel,
+  getSelectableModels,
   resolveModelByKeys,
   type ModelDefinition,
 } from "@nebiusrelay/models";
@@ -22,38 +22,40 @@ export const CLAUDE_HAIKU_MODEL_SELECTION: ClaudeModelSelection = {
 };
 
 /**
- * Claude-routable models = every curated flagship plus the lightweight
- * Haiku-tier backend Claude Code uses for built-in exploration subagents.
+ * Claude-routable models = every model in the live Nebius catalog plus the
+ * lightweight Haiku-tier backend Claude Code uses for built-in exploration
+ * subagents. Read from the dynamic catalog so it tracks what Nebius serves.
  * Models without a friendly Anthropic alias use their Nebius id directly.
  */
-const selectableClaudeModels = SELECTABLE_MODELS.map((definition) => ({
-  alias: definition.anthropicAlias ?? definition.id,
-  definition,
-}));
-
-export const CLAUDE_SUPPORTED_MODELS: readonly ClaudeModelSelection[] = [
-  ...selectableClaudeModels,
-  ...(selectableClaudeModels.some(
+export function getClaudeSupportedModels(): readonly ClaudeModelSelection[] {
+  const selectable = getSelectableModels().map((definition) => ({
+    alias: definition.anthropicAlias ?? definition.id,
+    definition,
+  }));
+  const hasHaiku = selectable.some(
     (model) => model.definition.id === CLAUDE_HAIKU_MODEL_SELECTION.definition.id,
-  )
-    ? []
-    : [CLAUDE_HAIKU_MODEL_SELECTION]),
-];
+  );
+  return hasHaiku ? selectable : [...selectable, CLAUDE_HAIKU_MODEL_SELECTION];
+}
 
 export function resolveClaudeModel(value: string | undefined): ClaudeModelSelection {
-  if (CLAUDE_SUPPORTED_MODELS.length === 0) {
+  const supported = getClaudeSupportedModels();
+  if (supported.length === 0) {
     throw new Error("No Claude models are configured.");
   }
   const found = resolveModelByKeys(
-    CLAUDE_SUPPORTED_MODELS.map((model) => model.definition),
+    supported.map((model) => model.definition),
     value,
     [(model) => model.anthropicAlias, (model) => model.id],
-    GLM_5_2.id,
+    getDefaultModel().id,
   );
   if (!found) {
-    const expected = CLAUDE_SUPPORTED_MODELS.map(
-      (model) => `${model.alias} (${model.definition.id})`,
-    ).join(", ");
+    const expected = supported
+      .map(
+        (model) =>
+          `${model.definition.anthropicAlias ?? model.definition.id} (${model.definition.id})`,
+      )
+      .join(", ");
     throw new Error(`Unsupported Claude model "${value}". Expected one of: ${expected}.`);
   }
   return { alias: found.anthropicAlias ?? found.id, definition: found };

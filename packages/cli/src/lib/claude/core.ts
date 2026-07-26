@@ -1,7 +1,7 @@
 import {
   CLAUDE_HAIKU_MODEL_SELECTION,
   CLAUDE_MODEL_CAPABILITIES,
-  CLAUDE_SUPPORTED_MODELS,
+  getClaudeSupportedModels,
   resolveClaudeModel,
   type ClaudeModelSelection,
 } from "./defaults.js";
@@ -108,9 +108,9 @@ export function buildClaudeEnv({
 
 function applyClaudeModelMenuEnv(env: NodeJS.ProcessEnv, selectedAlias: string): void {
   const selected = resolveClaudeModel(selectedAlias);
-  const defaultModel = CLAUDE_SUPPORTED_MODELS[0] ?? selected;
-  const secondaryModel =
-    CLAUDE_SUPPORTED_MODELS.find((model) => model.alias !== defaultModel.alias) ?? selected;
+  const supported = getClaudeSupportedModels();
+  const defaultModel = supported[0] ?? selected;
+  const secondaryModel = supported.find((model) => model.alias !== defaultModel.alias) ?? selected;
 
   setTierModelEnv(env, "OPUS", defaultModel);
   setTierModelEnv(env, "SONNET", secondaryModel);

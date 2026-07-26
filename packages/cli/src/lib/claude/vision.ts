@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { NEBIUS_BASE_URL, VISION_MODELS, VISION_PROMPT } from "@nebiusrelay/models";
+import { NEBIUS_BASE_URL, VISION_PROMPT, getVisionModels } from "@nebiusrelay/models";
 
 /**
  * Image interception for the Claude proxy. GLM-5.2 is text-only, so when Claude
@@ -150,15 +150,16 @@ export async function describeImage(
     return { description: "[Image unavailable: could not read image data]", model: "none" };
   }
 
+  const visionModels = getVisionModels();
   const raceDelayMs = visionFailoverRaceDelayMs();
-  if (raceDelayMs !== undefined && VISION_MODELS.length >= 2) {
+  if (raceDelayMs !== undefined && visionModels.length >= 2) {
     const raced = await describeImageWithDelayedFailoverRace(imageUrl, options, raceDelayMs);
     if (raced !== undefined) {
       return raced;
     }
   }
 
-  for (const model of VISION_MODELS) {
+  for (const model of visionModels) {
     const outcome = await callVisionModel(model.id, imageUrl, options);
     if (outcome.ok) {
       return { description: outcome.description, model: outcome.model, usage: outcome.usage };
@@ -183,8 +184,9 @@ async function describeImageWithDelayedFailoverRace(
     }
   | undefined
 > {
-  const primary = VISION_MODELS[0];
-  const fallback = VISION_MODELS[1];
+  const visionModels = getVisionModels();
+  const primary = visionModels[0];
+  const fallback = visionModels[1];
   if (!primary || !fallback) {
     return undefined;
   }

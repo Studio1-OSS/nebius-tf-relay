@@ -1,5 +1,5 @@
 import { type IncomingMessage, type ServerResponse } from "node:http";
-import { CLAUDE_SUPPORTED_MODELS } from "./defaults.js";
+import { getClaudeSupportedModels } from "./defaults.js";
 import { type ModelDefinition } from "@nebiusrelay/models";
 import { CostTracker } from "../cost.js";
 import { createProxyPerfTracer, type ProxyPerfSink } from "../proxy-perf.js";
@@ -93,7 +93,7 @@ export async function handleProxyRequest(
     // context indicator shows the wrong "% used". Advertise the real limits so
     // compaction triggers at the right point.
     writeJson(res, 200, {
-      data: CLAUDE_SUPPORTED_MODELS.map(claudeModelResponse),
+      data: getClaudeSupportedModels().map(claudeModelResponse),
     });
     return;
   }

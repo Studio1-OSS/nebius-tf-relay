@@ -2,6 +2,7 @@ import os from "node:os";
 import { ALL_HARNESSES, HARNESS_LABEL, type HarnessId } from "../harness.js";
 import { loadHarness, isHarnessImplemented } from "../harness-registry.js";
 import { detectInstalledHarness, missingHarnessMessage } from "../detect.js";
+import { initModelCatalog } from "../model-catalog-init.js";
 import type { HarnessContext, HarnessResult } from "../harness-types.js";
 
 export async function dispatchHarnessCommand(
@@ -28,6 +29,10 @@ export async function dispatchHarnessCommand(
   }
 
   const ctx = { home: os.homedir(), ...flags };
+  // Refresh the live Nebius catalog before spawning so model resolution, the
+  // Claude model-menu env, and the OpenCode/Pi generated configs reflect what
+  // Nebius serves. Best-effort; falls back to the bundled snapshot.
+  await initModelCatalog({ home: ctx.home });
   const result = await harnessModule.run(ctx);
   renderResult(result, flags);
 }

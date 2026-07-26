@@ -4,17 +4,27 @@
  * Code's local proxy and OpenCode's ephemeral config) import from here so the
  * facts can't drift between them.
  *
- * This is intentionally pure data + tiny helpers - no fetch, no spawning. It
- * is the future home of the remotely-updatable curated manifest referenced in
- * the repo PLAN.md; for now the manifest is static and shipped in-tree.
+ * The catalog is DYNAMIC: at startup the CLI/daemon fetches the live Nebius
+ * Token Factory catalog (`GET /v1/models?verbose=true`) and builds the model
+ * list from it, so the set of models and - critically - each model's modality
+ * (which ones accept images) always match what Nebius actually serves. The
+ * verbose endpoint returns id, name, context_length, `architecture.modality`
+ * ("text->text" vs "text+image->text"), and per-token pricing.
  *
- * Model ids below were verified against the live Nebius Token Factory catalog
- * (`GET https://api.tokenfactory.nebius.com/v1/models`) on 2026-07-16. That
- * endpoint returns ids only - per-token pricing and context/output limits are
- * best-effort estimates and should be reconciled against Nebius's pricing page.
- * Cost/limits affect only the cost banner and the proactive context budget; the
- * reactive context-fit self-corrects from Nebius's real reported token counts.
+ * A small curated override table (`CURATED_OVERRIDES`) supplies only the facts
+ * that endpoint does NOT expose or misreports: max-output limits, Claude
+ * aliases, and a floor for the placeholder context window Nebius returns for a
+ * few flagships (it reports 8000 for GLM-5.2 et al., which is wrong). Modality
+ * and pricing are always taken from the API.
+ *
+ * When the live fetch has not run or fails, everything falls back to
+ * CATALOG_SNAPSHOT (a captured copy of the live endpoint), so the tool works
+ * offline. The named constants (GLM_5_2, VISION_MODELS, ...) are built from
+ * that snapshot and are what the test-suite imports; production code uses the
+ * dynamic getters (getSelectableModels(), getVisionModels(), ...).
  */
+
+import { CATALOG_SNAPSHOT } from "./catalog-snapshot.js";
 
 export const NEBIUS_BASE_URL = "https://api.tokenfactory.nebius.com/v1";
 
@@ -34,9 +44,11 @@ export type ModelLimit = {
   output: number;
 };
 
+export type Modality = "text" | "audio" | "image" | "video" | "pdf";
+
 export type ModelModalities = {
-  input: readonly ("text" | "audio" | "image" | "video" | "pdf")[];
-  output: readonly ("text" | "audio" | "image" | "video" | "pdf")[];
+  input: readonly Modality[];
+  output: readonly Modality[];
 };
 
 export type ModelDefinition = {
@@ -48,7 +60,7 @@ export type ModelDefinition = {
   anthropicAlias: string | null;
   cost: ModelCost;
   limit: ModelLimit;
-  /** Accepts image attachments (vision). */
+  /** Accepts image attachments (vision). Derived from the API modality. */
   attachment: boolean;
   /** Supports reasoning/thinking tokens. */
   reasoning: boolean;
@@ -66,182 +78,354 @@ export function costPerToken(costPerMillion: number): number {
   return costPerMillion / TOKENS_PER_MILLION;
 }
 
+// ---------------------------------------------------------------------------
+// Live Nebius catalog: fetch, parse, merge with curated overrides
+// ---------------------------------------------------------------------------
+
 /**
- * GLM-5.2 - Zhipu AI's flagship MoE, the default coding model for both
- * harnesses. Text-only: image blocks must be routed elsewhere (the Claude
- * proxy intercepts them; OpenCode uses the `@vision` subagent).
+ * One row from `GET /v1/models?verbose=true`. Only the fields buildCatalog()
+ * reads are typed; the endpoint returns more (quantization, per_request_limits)
+ * that we ignore.
  */
-export const GLM_5_2: ModelDefinition = {
-  id: "zai-org/GLM-5.2",
-  name: "GLM 5.2 · default",
-  anthropicAlias: "nebius-glm-5-2",
-  cost: { input: 1.4, output: 4.4, cache_read: 0.26 },
-  limit: { context: 262_144, output: 164_000 },
-  attachment: false,
-  reasoning: true,
-  temperature: true,
-  tool_call: true,
-  modalities: { input: ["text"], output: ["text"] },
+export type NebiusApiModel = {
+  id: string;
+  name?: string | null;
+  description?: string | null;
+  context_length?: number | null;
+  architecture?: { modality?: string | null } | null;
+  pricing?: {
+    prompt?: string | number | null;
+    completion?: string | number | null;
+    image?: string | number | null;
+  } | null;
 };
 
 /**
- * Kimi K2.6 - Moonshot's newest reasoning + vision flagship. Vision-capable,
- * so it can serve as a vision primary (images reach it directly, no subagent).
- * Pricing/context from Nebius changelog (June 2026); output limit per
- * models.dev. Pinned to the OpenCode `@vision` subagent is the older K2.7-Code
- * (below) - kept there for stability; K2.6 is selectable as a primary.
+ * Curated metadata the verbose endpoint can't be trusted for, keyed by Nebius
+ * id. Modality and pricing are NEVER overridden here (they come from the API);
+ * this only fills gaps: output caps the API omits, Claude aliases, a context
+ * floor for the placeholder 8000 Nebius reports for a few flagships, the
+ * picker order, and the vision-failover rank. Models absent from this map still
+ * appear, built entirely from their API row with sane defaults.
  */
-export const KIMI_K2_6: ModelDefinition = {
-  id: "moonshotai/Kimi-K2.6",
-  name: "Kimi K2.6 · vision",
-  anthropicAlias: null,
-  cost: { input: 1.2, output: 4.5, cache_read: 0.2 },
-  limit: { context: 262_144, output: 131_000 },
-  attachment: true,
-  reasoning: true,
-  temperature: true,
-  tool_call: true,
-  modalities: { input: ["text", "image"], output: ["text"] },
+type ModelOverride = {
+  name?: string;
+  anthropicAlias?: string | null;
+  /** Max output tokens (the API has no such field). */
+  outputLimit?: number;
+  /** Floor for context_length when the API returns a known-bad small value. */
+  minContext?: number;
+  reasoning?: boolean;
+  temperature?: boolean;
+  tool_call?: boolean;
+  /** Sort priority in the selectable picker (lower first); flagships get one. */
+  order?: number;
+  /** Position in the image-description failover list (lower first). */
+  visionRank?: number;
 };
 
-/**
- * MiniMax M3 - newest MiniMax, vision-capable, 512K context, the cheapest
- * vision primary. Pricing from Nebius changelog (June 2026); output limit
- * (128K) per models.dev.
- */
-export const MINIMAX_M3: ModelDefinition = {
-  id: "MiniMaxAI/MiniMax-M3",
-  name: "MiniMax M3 · vision · 512K",
-  anthropicAlias: null,
-  cost: { input: 0.3, output: 1.2, cache_read: 0.06 },
-  limit: { context: 524_288, output: 128_000 },
-  attachment: true,
-  reasoning: true,
-  temperature: true,
-  tool_call: true,
-  modalities: { input: ["text", "image"], output: ["text"] },
+const CURATED_OVERRIDES: Record<string, ModelOverride> = {
+  "zai-org/GLM-5.2": {
+    name: "GLM 5.2 · default",
+    anthropicAlias: "nebius-glm-5-2",
+    outputLimit: 164_000,
+    minContext: 262_144, // API reports a placeholder 8000
+    order: 0,
+  },
+  "moonshotai/Kimi-K2.6": {
+    name: "Kimi K2.6 · vision",
+    outputLimit: 131_000,
+    order: 10,
+    visionRank: 0, // vision flagship: primary for image description
+  },
+  "moonshotai/Kimi-K2.7-Code": {
+    name: "Kimi K2.7 Code",
+    anthropicAlias: "nebius-kimi-k2-7-code",
+    outputLimit: 131_072,
+    minContext: 262_144, // API reports a placeholder 8000
+    order: 20,
+  },
+  "MiniMaxAI/MiniMax-M3": {
+    name: "MiniMax M3",
+    outputLimit: 128_000,
+    minContext: 196_608, // API reports a placeholder 8000
+    order: 30,
+  },
+  "Qwen/Qwen3.5-397B-A17B": {
+    name: "Qwen 3.5 397B · flagship",
+    outputLimit: 65_536,
+    order: 40,
+  },
+  "deepseek-ai/DeepSeek-V4-Pro": {
+    name: "DeepSeek V4 Pro",
+    outputLimit: 384_000,
+    order: 50,
+  },
+  "Qwen/Qwen2.5-VL-72B-Instruct": {
+    name: "Qwen2.5-VL 72B · vision",
+    reasoning: false, // perception model, not a reasoner
+    outputLimit: 32_768,
+    order: 60,
+    visionRank: 1, // vision fallback
+  },
 };
 
-/**
- * Qwen3.5 397B (A17B MoE) - the strongest Qwen in the live Nebius catalog and
- * a strong general/coding flagship. Text-only here (not a VL model). Pricing
- * and limits are estimates pending Nebius's pricing page.
- */
-export const QWEN_3_5_397B: ModelDefinition = {
-  id: "Qwen/Qwen3.5-397B-A17B",
-  name: "Qwen 3.5 397B · flagship",
-  anthropicAlias: null,
-  cost: { input: 2.5, output: 3.75, cache_read: 0 },
-  limit: { context: 262_144, output: 65_536 },
-  attachment: false,
-  reasoning: true,
-  temperature: true,
-  tool_call: true,
-  modalities: { input: ["text"], output: ["text"] },
-};
+/** The pinned default model id. Kept stable so both harnesses agree. */
+export const DEFAULT_MODEL_ID = "zai-org/GLM-5.2";
+
+const ORDER_FALLBACK = 1_000;
+const DEFAULT_OUTPUT_LIMIT = 32_768;
+const DEFAULT_CONTEXT = 131_072;
 
 /**
- * DeepSeek V4 Pro - newest DeepSeek, long-context (512K) reasoning. Text-only
- * on Nebius (not in the vision models table). Pricing is the post-June-9-2026
- * reduction ($1.74/$3.48); output limit (384K) per models.dev.
- */
-export const DEEPSEEK_V4_PRO: ModelDefinition = {
-  id: "deepseek-ai/DeepSeek-V4-Pro",
-  name: "DeepSeek V4 Pro · 512K",
-  anthropicAlias: null,
-  cost: { input: 1.74, output: 3.48, cache_read: 0.2 },
-  limit: { context: 512_000, output: 384_000 },
-  attachment: false,
-  reasoning: true,
-  temperature: true,
-  tool_call: true,
-  modalities: { input: ["text"], output: ["text"] },
-};
-
-/**
- * Capabilities string Claude Code reads from ANTHROPIC_CUSTOM_MODEL_OPTION_SUPPORTED_CAPABILITIES.
- * Mirrors what GLM-5.2 supports on Nebius: adjustable reasoning effort
- * (incl. xhigh/max), thinking, adaptive thinking, and interleaved thinking.
+ * Capabilities string Claude Code reads from
+ * ANTHROPIC_CUSTOM_MODEL_OPTION_SUPPORTED_CAPABILITIES. Mirrors what GLM-5.2
+ * supports on Nebius: adjustable reasoning effort (incl. xhigh/max), thinking,
+ * adaptive thinking, and interleaved thinking.
  */
 export const GLM_5_2_ANTHROPIC_CAPABILITIES =
   "effort,xhigh_effort,max_effort,thinking,adaptive_thinking,interleaved_thinking";
 
+function priceToMillion(value: string | number | null | undefined): number {
+  const perToken = typeof value === "string" ? Number.parseFloat(value) : (value ?? 0);
+  if (!Number.isFinite(perToken) || perToken <= 0) {
+    return 0;
+  }
+  return perToken * TOKENS_PER_MILLION;
+}
+
 /**
- * Kimi K2.7 Code - Moonshot's coding-focused model. Used as OpenCode's
- * `@vision` subagent primary and as an optional Claude Code backend.
+ * Parse a Nebius `architecture.modality` string ("text+image->text",
+ * "text->text", "text->embedding") into input/output modality lists.
  */
-export const KIMI_K2_7_CODE: ModelDefinition = {
-  id: "moonshotai/Kimi-K2.7-Code",
-  name: "Kimi K2.7 Code",
-  anthropicAlias: "nebius-kimi-k2-7-code",
-  cost: { input: 0.95, output: 4.0, cache_read: 0.19 },
-  limit: { context: 262_144, output: 131_072 },
-  attachment: true,
-  reasoning: true,
-  temperature: true,
-  tool_call: true,
-  modalities: { input: ["text", "image"], output: ["text"] },
+export function parseModalities(modality: string | null | undefined): ModelModalities {
+  const known: readonly Modality[] = ["text", "audio", "image", "video", "pdf"];
+  const isKnown = (v: string): v is Modality => (known as readonly string[]).includes(v);
+  const [inputRaw = "text", outputRaw = "text"] = (modality ?? "text->text").split("->");
+  const parse = (side: string): Modality[] => {
+    const parts = side
+      .split("+")
+      .map((p) => p.trim().toLowerCase())
+      .filter(isKnown);
+    return parts.length > 0 ? parts : ["text"];
+  };
+  return { input: parse(inputRaw), output: parse(outputRaw) };
+}
+
+/** Whether a model's raw modality produces text output (i.e. a chat model). */
+function rawOutputIsText(modality: string | null | undefined): boolean {
+  const output = (modality ?? "text->text").split("->")[1] ?? "text";
+  return output
+    .split("+")
+    .map((part) => part.trim().toLowerCase())
+    .includes("text");
+}
+
+/** Build a ModelDefinition from a live API row plus any curated override. */
+function mapApiModel(api: NebiusApiModel, override: ModelOverride | undefined): ModelDefinition {
+  const modalities = parseModalities(api.architecture?.modality);
+  const attachment = modalities.input.includes("image");
+  const apiContext =
+    typeof api.context_length === "number" && api.context_length > 0 ? api.context_length : 0;
+  const context = Math.max(apiContext, override?.minContext ?? 0) || DEFAULT_CONTEXT;
+  const output = override?.outputLimit ?? Math.min(context, DEFAULT_OUTPUT_LIMIT);
+  return {
+    id: api.id,
+    name: override?.name ?? api.name ?? api.id,
+    anthropicAlias: override?.anthropicAlias ?? null,
+    cost: {
+      input: priceToMillion(api.pricing?.prompt),
+      output: priceToMillion(api.pricing?.completion),
+      cache_read: 0, // the verbose endpoint publishes no cached-input price
+    },
+    limit: { context, output },
+    attachment,
+    reasoning: override?.reasoning ?? true,
+    temperature: override?.temperature ?? true,
+    tool_call: override?.tool_call ?? true,
+    modalities,
+  };
+}
+
+export type NebiusCatalog = {
+  /** Every chat model (text output), unordered map access below. */
+  all: readonly ModelDefinition[];
+  /** Chat models for the picker, flagship-ordered. */
+  selectable: readonly ModelDefinition[];
+  /** Vision-capable models for image description, failover-ordered. */
+  vision: readonly ModelDefinition[];
+  byId: ReadonlyMap<string, ModelDefinition>;
+  defaultModel: ModelDefinition;
 };
 
 /**
- * Qwen2.5-VL 72B - a dedicated vision-language model in the live Nebius
- * catalog; the vision fallback for image description. Verified end-to-end
- * against a real image on 2026-07-16. Pricing/limits are estimates.
+ * Build a catalog from live (or snapshot) API rows. Embedding-only models
+ * (output modality != text) are dropped - they aren't chat backends. The
+ * selectable list is flagship-first (curated `order`) then the rest by name,
+ * so a newly added Nebius model appears automatically at the tail.
  */
-export const QWEN_2_5_VL_72B: ModelDefinition = {
-  id: "Qwen/Qwen2.5-VL-72B-Instruct",
-  name: "Qwen2.5-VL 72B · vision",
-  anthropicAlias: null,
-  cost: { input: 0.25, output: 0.75, cache_read: 0 },
-  limit: { context: 131_072, output: 32_768 },
-  attachment: true,
-  reasoning: false,
-  temperature: true,
-  tool_call: true,
-  modalities: { input: ["text", "image"], output: ["text"] },
-};
+export function buildCatalog(apiModels: readonly NebiusApiModel[]): NebiusCatalog {
+  const defs = apiModels
+    .filter((m) => m && typeof m.id === "string" && m.id.length > 0)
+    // Chat models only: the output side of the modality must be text. This
+    // drops embedding models ("text->embedding") that can't back a coding
+    // agent. Read the raw modality so an unrecognized output token (e.g.
+    // "embedding") is excluded rather than defaulting to text.
+    .filter((m) => rawOutputIsText(m.architecture?.modality))
+    .map((m) => mapApiModel(m, CURATED_OVERRIDES[m.id]));
+
+  const orderOf = (d: ModelDefinition): number => CURATED_OVERRIDES[d.id]?.order ?? ORDER_FALLBACK;
+  const selectable = [...defs].sort(
+    (a, b) => orderOf(a) - orderOf(b) || a.name.localeCompare(b.name),
+  );
+
+  const visionRankOf = (d: ModelDefinition): number =>
+    CURATED_OVERRIDES[d.id]?.visionRank ?? ORDER_FALLBACK;
+  const vision = defs
+    .filter((d) => d.attachment)
+    .sort((a, b) => visionRankOf(a) - visionRankOf(b) || a.name.localeCompare(b.name));
+
+  const byId = new Map(defs.map((d) => [d.id, d]));
+  const defaultModel = byId.get(DEFAULT_MODEL_ID) ?? selectable[0] ?? defs[0];
+  if (!defaultModel) {
+    throw new Error("Nebius catalog is empty: no chat models available.");
+  }
+
+  return { all: defs, selectable, vision, byId, defaultModel };
+}
+
+export class NebiusCatalogError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = "NebiusCatalogError";
+  }
+}
 
 /**
- * Curated vision models for image description, ordered primary-first. The
- * Claude proxy iterates this list with automatic failover; OpenCode wires only
- * the primary (VISION_MODELS[0]) into its `@vision` subagent since subagents
- * take a single model. Reasoning is always disabled on these calls
- * (perception, not reasoning) - handled by callers, not encoded here.
+ * Fetch the live catalog from `GET {baseUrl}/models?verbose=true` and build it.
+ * Throws NebiusCatalogError on a non-2xx response or unparseable body; callers
+ * are expected to catch and fall back to the snapshot.
  */
-export const VISION_MODELS: readonly ModelDefinition[] = [KIMI_K2_7_CODE, QWEN_2_5_VL_72B];
+export async function fetchNebiusCatalog(opts: {
+  apiKey: string;
+  baseUrl?: string;
+  fetchImpl?: typeof fetch;
+  signal?: AbortSignal;
+}): Promise<NebiusCatalog> {
+  const base = (opts.baseUrl ?? NEBIUS_BASE_URL).replace(/\/$/, "");
+  const doFetch = opts.fetchImpl ?? fetch;
+  const res = await doFetch(`${base}/models?verbose=true`, {
+    headers: { Authorization: `Bearer ${opts.apiKey}` },
+    ...(opts.signal ? { signal: opts.signal } : {}),
+  });
+  if (!res.ok) {
+    throw new NebiusCatalogError(`GET /models?verbose=true failed: ${res.status}`, res.status);
+  }
+  let body: { data?: NebiusApiModel[] };
+  try {
+    body = (await res.json()) as { data?: NebiusApiModel[] };
+  } catch {
+    throw new NebiusCatalogError("GET /models?verbose=true returned non-JSON");
+  }
+  const rows = Array.isArray(body.data) ? body.data : [];
+  if (rows.length === 0) {
+    throw new NebiusCatalogError("GET /models?verbose=true returned no models");
+  }
+  return buildCatalog(rows);
+}
 
-/** Primary vision model (first in VISION_MODELS). */
-export const VISION_PRIMARY: ModelDefinition = VISION_MODELS[0] ?? {
-  id: "",
-  name: "",
-  anthropicAlias: null,
-  cost: { input: 0, output: 0, cache_read: 0 },
-  limit: { context: 0, output: 0 },
-  attachment: true,
-  reasoning: true,
-  temperature: true,
-  tool_call: true,
-  modalities: { input: ["text", "image"], output: ["text"] },
-};
+// ---------------------------------------------------------------------------
+// Snapshot-backed constants (deterministic) + live singleton (dynamic)
+// ---------------------------------------------------------------------------
+
+/** The catalog built from the shipped offline snapshot. Deterministic. */
+export const SNAPSHOT_CATALOG: NebiusCatalog = buildCatalog(CATALOG_SNAPSHOT);
+
+function fromSnapshot(id: string): ModelDefinition {
+  const model = SNAPSHOT_CATALOG.byId.get(id);
+  if (!model) {
+    throw new Error(`Snapshot is missing required model "${id}".`);
+  }
+  return model;
+}
 
 /**
- * Curated current-flagship Nebius models surfaced in OpenCode's `/models`.
- * Nebius's full serverless catalog is hidden via the provider `whitelist`
- * (opencode PR #3416); only these ids appear. Each `name` carries a short tip
- * because OpenCode has no per-model `description` field - the display name is
- * the only place a user-facing hint can live. Order = the picker order.
- *
- * Sources: Nebius changelog (ids/pricing/context, June 2026) +
- * models.dev (output limits). See per-model doc comments for specifics.
+ * Named model constants, resolved from the offline snapshot. These are stable
+ * fixtures (the test-suite imports them); production code that needs the live
+ * catalog uses the getters below instead.
  */
-export const SELECTABLE_MODELS: readonly ModelDefinition[] = [
-  GLM_5_2,
-  VISION_PRIMARY, // moonshotai/Kimi-K2.7-Code - also the @vision subagent model
-  KIMI_K2_6,
-  MINIMAX_M3,
-  QWEN_3_5_397B,
-  DEEPSEEK_V4_PRO,
-];
+export const GLM_5_2: ModelDefinition = fromSnapshot("zai-org/GLM-5.2");
+export const KIMI_K2_6: ModelDefinition = fromSnapshot("moonshotai/Kimi-K2.6");
+export const KIMI_K2_7_CODE: ModelDefinition = fromSnapshot("moonshotai/Kimi-K2.7-Code");
+export const MINIMAX_M3: ModelDefinition = fromSnapshot("MiniMaxAI/MiniMax-M3");
+export const QWEN_3_5_397B: ModelDefinition = fromSnapshot("Qwen/Qwen3.5-397B-A17B");
+export const DEEPSEEK_V4_PRO: ModelDefinition = fromSnapshot("deepseek-ai/DeepSeek-V4-Pro");
+export const QWEN_2_5_VL_72B: ModelDefinition = fromSnapshot("Qwen/Qwen2.5-VL-72B-Instruct");
+
+/** Selectable models from the offline snapshot (deterministic). */
+export const SELECTABLE_MODELS: readonly ModelDefinition[] = SNAPSHOT_CATALOG.selectable;
+/** Vision models from the offline snapshot (deterministic). */
+export const VISION_MODELS: readonly ModelDefinition[] = SNAPSHOT_CATALOG.vision;
+/** Primary vision model from the offline snapshot (deterministic). */
+export const VISION_PRIMARY: ModelDefinition = SNAPSHOT_CATALOG.vision[0] ?? GLM_5_2;
+
+// The live singleton starts as the snapshot and is replaced by applyCatalog()
+// once the daemon/CLI fetches the real catalog. Getters read it, so every
+// consumer that uses a getter tracks the live data after refresh.
+let activeCatalog: NebiusCatalog = SNAPSHOT_CATALOG;
+
+/** Replace the active (live) catalog. Called after a successful fetch. */
+export function applyCatalog(catalog: NebiusCatalog): void {
+  activeCatalog = catalog;
+}
+
+/** The current active catalog (live if fetched, else snapshot). */
+export function getCatalog(): NebiusCatalog {
+  return activeCatalog;
+}
+
+/** Fetch the live catalog and install it as the active one. Returns it. */
+export async function refreshCatalog(opts: {
+  apiKey: string;
+  baseUrl?: string;
+  fetchImpl?: typeof fetch;
+  signal?: AbortSignal;
+}): Promise<NebiusCatalog> {
+  const catalog = await fetchNebiusCatalog(opts);
+  applyCatalog(catalog);
+  return catalog;
+}
+
+/** Selectable models from the live catalog (falls back to snapshot). */
+export function getSelectableModels(): readonly ModelDefinition[] {
+  return activeCatalog.selectable;
+}
+
+/** Vision models from the live catalog (falls back to snapshot). */
+export function getVisionModels(): readonly ModelDefinition[] {
+  return activeCatalog.vision;
+}
+
+/** Primary vision model from the live catalog. */
+export function getVisionPrimary(): ModelDefinition {
+  return activeCatalog.vision[0] ?? VISION_PRIMARY;
+}
+
+/** The default model from the live catalog. */
+export function getDefaultModel(): ModelDefinition {
+  return activeCatalog.defaultModel;
+}
+
+/**
+ * Find a model definition by its Nebius id in the live catalog. Returns
+ * undefined if the model is not in the current catalog.
+ */
+export function findModelById(id: string): ModelDefinition | undefined {
+  return activeCatalog.byId.get(id);
+}
 
 /**
  * Whether a model accepts image input (vision-capable). Used to pick the right
@@ -250,15 +434,6 @@ export const SELECTABLE_MODELS: readonly ModelDefinition[] = [
  */
 export function isVisionModel(model: ModelDefinition): boolean {
   return model.attachment && model.modalities.input.includes("image");
-}
-
-/**
- * Find a model definition by its Nebius id across the curated + vision lists.
- * Returns undefined if not found.
- */
-export function findModelById(id: string): ModelDefinition | undefined {
-  const all = [...SELECTABLE_MODELS, ...VISION_MODELS];
-  return all.find((model) => model.id === id);
 }
 
 /**

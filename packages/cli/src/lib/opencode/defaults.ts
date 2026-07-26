@@ -1,8 +1,8 @@
 import {
-  GLM_5_2,
-  SELECTABLE_MODELS,
-  VISION_PRIMARY,
   VISION_PROMPT,
+  getDefaultModel,
+  getSelectableModels,
+  getVisionPrimary,
   type ModelDefinition,
 } from "@nebiusrelay/models";
 
@@ -11,7 +11,7 @@ export const OPENCODE_PROVIDER_ID = "nebius";
 // Real Nebius model id. OpenCode-facing selector is
 // `${OPENCODE_PROVIDER_ID}/${OPENCODE_DEFAULT_MODEL}` (slash form, per the
 // OpenCode config schema: "provider/model, eg anthropic/claude-2").
-export const OPENCODE_DEFAULT_MODEL = GLM_5_2.id;
+export const OPENCODE_DEFAULT_MODEL = getDefaultModel().id;
 
 /**
  * The shape of a model entry inside an OpenCode provider's `models` block.
@@ -56,20 +56,26 @@ function toOpencodeModelEntry(model: ModelDefinition): OpencodeModelEntry {
  * pinned to the primary vision model (Kimi-K2.7-Code), which is also in
  * this list.
  */
-export const OPENCODE_MODEL_ENTRIES: Record<string, OpencodeModelEntry> = Object.fromEntries(
-  SELECTABLE_MODELS.map((model) => [model.id, toOpencodeModelEntry(model)]),
-);
+export function opencodeModelEntries(): Record<string, OpencodeModelEntry> {
+  return Object.fromEntries(
+    getSelectableModels().map((model) => [model.id, toOpencodeModelEntry(model)]),
+  );
+}
 
 /**
  * Whitelist of model ids that restricts the Nebius provider so `/models` shows
- * ONLY our curated set (opencode PR #3416). Without this, OpenCode merges our
- * declared models on top of Nebius's full models.dev catalog, surfacing
+ * ONLY our live catalog set (opencode PR #3416). Without this, OpenCode merges
+ * our declared models on top of Nebius's full models.dev catalog, surfacing
  * hundreds of unrelated models.
  */
-export const OPENCODE_MODEL_WHITELIST: string[] = SELECTABLE_MODELS.map((model) => model.id);
+export function opencodeModelWhitelist(): string[] {
+  return getSelectableModels().map((model) => model.id);
+}
 
 /** OpenCode selector form for the vision subagent's model: provider/<nebius-id>. */
-export const OPENCODE_VISION_MODEL_SELECTOR = `${OPENCODE_PROVIDER_ID}/${VISION_PRIMARY.id}`;
+export function opencodeVisionModelSelector(): string {
+  return `${OPENCODE_PROVIDER_ID}/${getVisionPrimary().id}`;
+}
 
 /**
  * Neutral system prompt for the primary `build` agent. Replaces OpenCode's

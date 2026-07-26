@@ -1,5 +1,5 @@
 import { type ModelDefinition } from "@nebiusrelay/models";
-import { CODEX_SUPPORTED_MODELS } from "./defaults.js";
+import { getCodexSupportedModels } from "./defaults.js";
 
 const CODEX_BASE_INSTRUCTIONS =
   "You are Codex, a coding agent. You and the user share one workspace, and your job is to help them complete their coding task accurately and efficiently.";
@@ -36,7 +36,7 @@ const CODEX_MODEL_MESSAGES = {
 
 export function codexModelCatalog(): { models: Array<Record<string, unknown>> } {
   return {
-    models: CODEX_SUPPORTED_MODELS.map((model, index) => toCodexModelCatalogEntry(model, index)),
+    models: getCodexSupportedModels().map((model, index) => toCodexModelCatalogEntry(model, index)),
   };
 }
 

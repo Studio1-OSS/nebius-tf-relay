@@ -1,8 +1,9 @@
 import { constants as fsConstants } from "node:fs";
 import { access, copyFile, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { CODEX_DEFAULT_MODEL, CODEX_PROVIDER_ID, resolveCodexModel } from "./codex/defaults.js";
+import { codexDefaultModelId, CODEX_PROVIDER_ID, resolveCodexModel } from "./codex/defaults.js";
 import { codexModelCatalogJson } from "./codex/catalog.js";
+import { initModelCatalog } from "./model-catalog-init.js";
 import { applyCodexGenericUserDefaults } from "./codex/user-config.js";
 import { clearAppRegistration, writeAppRegistration } from "./daemon/app-registration.js";
 import {
@@ -65,6 +66,12 @@ export async function runCodexAppCommand(ctx: HarnessContext): Promise<HarnessRe
   const apiKey = await resolveNebiusApiKey({
     apiKey: ctx.apiKey,
     home: ctx.home,
+  });
+  // Refresh the live catalog so the ChatGPT-app model catalog we write reflects
+  // what Nebius serves. Best-effort; falls back to the bundled snapshot.
+  await initModelCatalog({
+    ...(apiKey ? { apiKey } : {}),
+    ...(ctx.home ? { home: ctx.home } : {}),
   });
   if (!apiKey) {
     throw new Error(
@@ -459,5 +466,5 @@ function isNodeError(err: unknown): err is NodeJS.ErrnoException {
 
 export const CODEX_APP_ALPHA_STATUS = {
   providerId: CODEX_APP_PROVIDER_ID,
-  defaultModel: CODEX_DEFAULT_MODEL,
+  defaultModel: codexDefaultModelId(),
 };

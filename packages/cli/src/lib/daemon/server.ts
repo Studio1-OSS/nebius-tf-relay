@@ -12,6 +12,7 @@ import { writeAnthropicError, isNebiusApiError } from "../claude/nebius-call.js"
 import { handleCodexProxyRequest, writeOpenAIError } from "../codex/proxy.js";
 import { readAppRegistration } from "./app-registration.js";
 import { nebiusrelayHome } from "../paths.js";
+import { initModelCatalog } from "../model-catalog-init.js";
 import {
   sessions as defaultSessions,
   SessionRegistry,
@@ -157,6 +158,11 @@ export async function runDaemon(options: DaemonOptions = {}): Promise<void> {
   const debug = options.debug ?? process.env.NEBIUSRELAY_DEBUG === "1";
   activeSessions = options.sessions ?? defaultSessions;
   const restored = await activeSessions.restorePersisted();
+
+  // Load the live Nebius model catalog (modality, pricing, context) so the
+  // proxied harnesses resolve models, serve /v1/models, and cost from what
+  // Nebius actually serves. Best-effort: falls back to the bundled snapshot.
+  await initModelCatalog({ home: os.homedir() });
 
   // Per-request agent context: handleDaemonRequest sets this so the catch-all
   // renders errors in the wire format the client actually speaks. Without it,

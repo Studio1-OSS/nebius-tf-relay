@@ -3,9 +3,9 @@ import { NEBIUS_API_KEY_ENV_REF } from "../nebius-core.js";
 import {
   OPENCODE_PROVIDER_ID,
   OPENCODE_DEFAULT_MODEL,
-  OPENCODE_MODEL_ENTRIES,
-  OPENCODE_MODEL_WHITELIST,
-  OPENCODE_VISION_MODEL_SELECTOR,
+  opencodeModelEntries,
+  opencodeModelWhitelist,
+  opencodeVisionModelSelector,
   OPENCODE_BUILD_PROMPT,
   OPENCODE_VISION_AGENT_PROMPT,
 } from "./defaults.js";
@@ -72,10 +72,10 @@ export function buildOpencodeConfigJson({
   buildPrompt?: string;
   visionPrompt?: string;
 } = {}): OpencodeConfig {
-  // Register every curated flagship (the full set /models shows) with their
-  // real metadata + tip-bearing display names. The `@vision` subagent's model
-  // (Kimi-K2.7-Code) is part of this set, so it's covered too.
-  const models = { ...OPENCODE_MODEL_ENTRIES };
+  // Register every model in the live Nebius catalog (the full set /models
+  // shows) with their real metadata + tip-bearing display names. The `@vision`
+  // subagent's model is part of this set, so it's covered too.
+  const models = { ...opencodeModelEntries() };
 
   const provider: OpencodeProviderConfig = {
     // Nebius has no first-party AI SDK adapter, so use the generic
@@ -95,7 +95,7 @@ export function buildOpencodeConfigJson({
     // shows Nebius's full catalog (hundreds of models) because the `models`
     // block merges onto the provider's models.dev catalog rather than replacing
     // it (opencode PR #3416 added whitelist/blacklist filtering).
-    whitelist: OPENCODE_MODEL_WHITELIST,
+    whitelist: opencodeModelWhitelist(),
   };
 
   return {
@@ -130,7 +130,7 @@ export function buildOpencodeConfigJson({
         mode: "subagent",
         description:
           "Describes images the user attaches, for use by a text-only primary model. Because of an OpenCode bug (#25553) the image is not always forwarded to this subagent, so the primary agent does not auto-invoke it. You can still invoke it explicitly with @vision; if it reports it can't see the image, switch to a vision-capable model via /models instead.",
-        model: OPENCODE_VISION_MODEL_SELECTOR,
+        model: opencodeVisionModelSelector(),
         prompt: visionPrompt,
       },
     },

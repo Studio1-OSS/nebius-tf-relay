@@ -3,13 +3,17 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { NEBIUS_BASE_URL } from "@nebiusrelay/models";
-import { CODEX_SUPPORTED_MODELS, resolveCodexModel } from "../codex/defaults.js";
+import { getCodexSupportedModels, resolveCodexModel } from "../codex/defaults.js";
 import { HARNESS } from "../harness.js";
 import { defineHarness, type HarnessContext, type HarnessResult } from "../harness-types.js";
 import { resolveNebiusApiKey } from "../nebius-core.js";
 
 const PI_PROVIDER_ID = "nebius";
-const PI_SUPPORTED_MODELS = CODEX_SUPPORTED_MODELS.map((model) => model.id).join(",");
+function piSupportedModels(): string {
+  return getCodexSupportedModels()
+    .map((model) => model.id)
+    .join(",");
+}
 
 const VALUE_FLAGS = new Set(["--api-key", "--provider", "--model", "--models"]);
 
@@ -38,7 +42,7 @@ function piArgsWithoutNebiusrelayOverrides(args: string[]): string[] {
 }
 
 function writePiModelsJson(agentDir: string, apiKey: string): void {
-  const models = CODEX_SUPPORTED_MODELS.map(({ definition }) => ({
+  const models = getCodexSupportedModels().map(({ definition }) => ({
     id: definition.id,
     name: definition.name,
     reasoning: definition.reasoning,
@@ -98,13 +102,14 @@ export default defineHarness({
       join(ctx.home || homedir(), ".pi", "agent", "sessions");
     writePiModelsJson(agentDir, apiKey);
     const selectedModel = resolveCodexModel(ctx.main);
+    const supportedModels = piSupportedModels();
     const args = [
       "--provider",
       PI_PROVIDER_ID,
       "--model",
       selectedModel.id,
       "--models",
-      PI_SUPPORTED_MODELS,
+      supportedModels,
       "--api-key",
       apiKey,
       "--no-approve",
@@ -118,7 +123,7 @@ export default defineHarness({
     if (process.env.NEBIUSRELAY_DEBUG === "1") {
       process.stderr.write(`[nebiusrelay pi] provider: ${PI_PROVIDER_ID}\n`);
       process.stderr.write(`[nebiusrelay pi] model: ${selectedModel.id}\n`);
-      process.stderr.write(`[nebiusrelay pi] models: ${PI_SUPPORTED_MODELS}\n`);
+      process.stderr.write(`[nebiusrelay pi] models: ${supportedModels}\n`);
       process.stderr.write(`[nebiusrelay pi] temp config dir: ${agentDir}\n`);
       process.stderr.write(`[nebiusrelay pi] session dir: ${sessionDir}\n`);
     }

@@ -77,19 +77,21 @@ ncodex exec "add a test for the parser"
 
 ## Models
 
-The default coding model is **GLM 5.2**. Switch models inside your agent, or with `--model`. The curated catalog:
+The model list is **fetched live** from Nebius (`GET /v1/models?verbose=true`) at startup, so every model Nebius serves is available and each model's vision support comes straight from the API's modality field, never a hand-maintained list. Results are cached in `~/.nebiusrelay/` and fall back to a bundled snapshot when offline. The default coding model is **GLM 5.2**; switch inside your agent or with `--model`.
 
-| Model                   | Best for                     | Context | Vision |
-| ----------------------- | ---------------------------- | ------- | ------ |
-| **GLM 5.2** _(default)_ | General coding               | 262K    | No     |
-| Kimi K2.6               | Reasoning + vision flagship  | 262K    | Yes    |
-| Kimi K2.7 Code          | Coding, `@vision` subagent   | 262K    | Yes    |
-| MiniMax M3              | Cheapest long-context vision | 512K    | Yes    |
-| Qwen 3.5 397B           | General / coding flagship    | 262K    | No     |
-| DeepSeek V4 Pro         | Long-context reasoning       | 512K    | No     |
-| Qwen2.5-VL 72B          | Vision fallback              | 131K    | Yes    |
+Featured flagships:
 
-Claude Code and Codex are text-native; image blocks are auto-routed to a vision model. OpenCode uses a dedicated `@vision` subagent. Run `scripts/list-nebius-models.mjs` (with `NEBIUS_API_KEY` set) to print the live catalog Nebius serves.
+| Model                   | Best for                  | Context | Vision |
+| ----------------------- | ------------------------- | ------- | ------ |
+| **GLM 5.2** _(default)_ | General coding            | 262K    | No     |
+| Kimi K2.6               | Vision flagship           | 262K    | Yes    |
+| Kimi K2.7 Code          | Coding                    | 262K    | No     |
+| MiniMax M3              | Fast, cheap               | 196K    | No     |
+| Qwen 3.5 397B           | General / coding flagship | 262K    | No     |
+| DeepSeek V4 Pro         | Long-context reasoning    | 1M      | No     |
+| Qwen2.5-VL 72B          | Vision fallback           | 32K     | Yes    |
+
+Claude Code and Codex are text-native; image blocks are auto-routed to a vision-capable model (Kimi K2.6, then Qwen2.5-VL). OpenCode uses a dedicated `@vision` subagent pinned to the vision flagship. Run `scripts/list-nebius-models.mjs` (with `NEBIUS_API_KEY` set) to print the raw catalog Nebius serves.
 
 ## Web search
 

@@ -1,4 +1,9 @@
-import { GLM_5_2, VISION_MODELS, costPerToken, type ModelDefinition } from "@nebiusrelay/models";
+import {
+  costPerToken,
+  findModelById,
+  getDefaultModel,
+  type ModelDefinition,
+} from "@nebiusrelay/models";
 import { APPROX_CHARS_PER_TOKEN } from "./claude/context-budget.js";
 
 /**
@@ -22,23 +27,6 @@ function pricingFor(model: ModelDefinition): {
     outputPerToken: costPerToken(model.cost.output),
   };
 }
-
-// Per-token pricing for the vision models used by the image intercept, keyed by
-// the API model string. Built from the shared VISION_MODELS manifest so the
-// rates can't drift from the rest of the codebase.
-const VISION_PRICING: Record<
-  string,
-  { inputPerToken: number; cachedPerToken: number; outputPerToken: number }
-> = Object.fromEntries(
-  VISION_MODELS.map((model) => [
-    model.id,
-    {
-      inputPerToken: costPerToken(model.cost.input),
-      cachedPerToken: costPerToken(model.cost.cache_read),
-      outputPerToken: costPerToken(model.cost.output),
-    },
-  ]),
-);
 
 export type TokenUsage = {
   promptTokens: number;
@@ -104,7 +92,7 @@ export class CostTracker {
     },
   };
 
-  constructor(mainModel: ModelDefinition = GLM_5_2) {
+  constructor(mainModel: ModelDefinition = getDefaultModel()) {
     this.defaultMainModel = mainModel;
   }
 
@@ -203,11 +191,15 @@ export class CostTracker {
    * model and aren't always reported; treated as 0 when absent.
    */
   addVisionUsage(model: string, promptTokens: number, completionTokens: number): number {
-    const pricing = VISION_PRICING[model];
-    if (!pricing) {
+    // Price from the live catalog so a newly added vision model is costed
+    // correctly. Unknown ids (not in the catalog) contribute no cost.
+    const definition = findModelById(model);
+    if (!definition) {
       return 0;
     }
-    const cost = promptTokens * pricing.inputPerToken + completionTokens * pricing.outputPerToken;
+    const cost =
+      promptTokens * costPerToken(definition.cost.input) +
+      completionTokens * costPerToken(definition.cost.output);
     this.visionCalls += 1;
     this.visionPromptTokens += promptTokens;
     this.visionCompletionTokens += completionTokens;

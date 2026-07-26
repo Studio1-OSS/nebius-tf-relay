@@ -1,8 +1,8 @@
 import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterAll, beforeAll, describe, test } from "vitest";
-import { CODEX_SUPPORTED_MODELS } from "../../cli/src/lib/codex/defaults.js";
-import { CLAUDE_SUPPORTED_MODELS } from "../../cli/src/lib/claude/defaults.js";
+import { getCodexSupportedModels } from "../../cli/src/lib/codex/defaults.js";
+import { getClaudeSupportedModels } from "../../cli/src/lib/claude/defaults.js";
 import { assert, assertCommandExists } from "./assert.js";
 import { codexExecArgs } from "./codex-exec.js";
 import { runCommand } from "./command.js";
@@ -184,7 +184,7 @@ function modelProbeCases(harness: Harness, models: MatrixModel[]): LiveModelCase
 }
 
 function codexModels(): MatrixModel[] {
-  return CODEX_SUPPORTED_MODELS.map((model) => ({
+  return getCodexSupportedModels().map((model) => ({
     id: model.id,
     name: model.definition.name,
     selector: model.id,
@@ -192,7 +192,7 @@ function codexModels(): MatrixModel[] {
 }
 
 function claudeModels(): MatrixModel[] {
-  return CLAUDE_SUPPORTED_MODELS.map((model) => ({
+  return getClaudeSupportedModels().map((model) => ({
     id: model.definition.id,
     name: model.definition.name,
     selector: model.alias,

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { ModelDefinition } from "@nebiusrelay/models";
 import { stableHash } from "../stable-hash.js";
-import { CLAUDE_SUPPORTED_MODELS } from "./defaults.js";
+import { getClaudeSupportedModels } from "./defaults.js";
 import { APPROX_CHARS_PER_TOKEN, jsonByteLength, safeClaudeInputLimit } from "./context-budget.js";
 import { mapStopReason, parseJsonOrEmpty } from "./content-format.js";
 import { nativeWebSearchBlocks } from "./native-web-search-response.js";
@@ -36,7 +36,7 @@ export function resolveTargetModel(
   requestedModel: string | undefined,
   options: ClaudeModelOptions,
 ): ResolvedClaudeModel {
-  const supported = CLAUDE_SUPPORTED_MODELS.find(
+  const supported = getClaudeSupportedModels().find(
     (model) => model.alias === requestedModel || model.definition.id === requestedModel,
   );
   return supported ?? { alias: options.modelId, definition: options.modelDefinition };
@@ -46,7 +46,7 @@ export function findClaudeModel(
   modelId: string,
   options: ClaudeModelOptions,
 ): ResolvedClaudeModel | undefined {
-  const supported = CLAUDE_SUPPORTED_MODELS.find(
+  const supported = getClaudeSupportedModels().find(
     (model) => model.alias === modelId || model.definition.id === modelId,
   );
   if (supported) {
