@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 const installCommand = "curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh";
-const githubUrl = "https://github.com";
+const githubUrl = "https://github.com/shivaylamba/nebius-tf-relay";
+const docsUrl = "https://github.com/shivaylamba/nebius-tf-relay/blob/main/README.md";
 const nebiusApiKeysUrl = "https://tokenfactory.nebius.com/?modals=create-api-key";
 const tavilyKeysUrl = "https://app.tavily.com";
 const llmsUrl = "/llms.txt";
@@ -178,13 +179,17 @@ function Home() {
           <nav className="ml-auto flex items-center gap-1 text-[14px] font-medium text-muted">
             <a
               className="hidden rounded-lg px-3 py-2 transition hover:bg-code hover:text-ink sm:block"
-              href={llmsUrl}
+              href={docsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               Docs
             </a>
             <a
               className="hidden rounded-lg px-3 py-2 transition hover:bg-code hover:text-ink sm:block"
               href={githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               GitHub
             </a>
@@ -352,11 +357,12 @@ function Home() {
                 Every agent.
               </h3>
               <p className="mt-4 max-w-[280px] text-[14.5px] leading-relaxed text-white/65">
-                Your Nebius Token Factory key powers all four harnesses through a single local proxy
-                with no per-tool provider setup and no API endpoints to wire by hand.
+                One Nebius Token Factory key powers all four agents through a single local proxy.
+                The model list is pulled live from Nebius, so every model they serve is one command
+                away.
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
-                {["GLM 5.2", "Kimi K2.7", "Qwen 3.5", "DeepSeek V4", "MiniMax M3"].map((m) => (
+                {["GLM 5.2", "Kimi K2.6", "Qwen 3.5", "DeepSeek V4", "MiniMax M3"].map((m) => (
                   <span
                     key={m}
                     className="rounded-full bg-white/[.08] px-3 py-1.5 font-mono text-[12px] text-white/75 ring-1 ring-white/10"
@@ -450,11 +456,29 @@ function Home() {
             <span className="font-semibold text-ink">Nebius TF Relay</span>
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 sm:ml-auto">
-            <a className="transition hover:text-ink" href={llmsUrl}>
-              llms.txt
+            <a
+              className="transition hover:text-ink"
+              href={docsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Docs
             </a>
-            <a className="transition hover:text-ink" href={githubUrl}>
+            <a
+              className="transition hover:text-ink"
+              href={githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               GitHub
+            </a>
+            <a
+              className="transition hover:text-ink"
+              href={llmsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              llms.txt
             </a>
             <a
               className="transition hover:text-ink"
