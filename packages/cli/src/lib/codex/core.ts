@@ -22,8 +22,35 @@ export type CodexLaunchResult = {
 
 const MODEL_OVERRIDE_FLAGS = new Set(["--model", "-m"]);
 
+/**
+ * `--no-mcp` is a nebiusrelay convenience: Codex connects to every MCP server
+ * in `~/.codex/config.toml` at startup (docker containers, remote URLs), which
+ * can add many seconds even to a "hi". We can't clear individual `[mcp_servers]`
+ * TOML tables reliably via `-c`, so `--no-mcp` maps to Codex's own
+ * `--ignore-user-config`, which skips the user config entirely (no MCP). Auth
+ * still works (it rides on the CODEX_AUTH_ENV env key, not the config file).
+ */
+function applyNoMcp(args: string[]): string[] {
+  if (!args.includes("--no-mcp")) {
+    return args;
+  }
+  const out: string[] = [];
+  let injected = false;
+  for (const arg of args) {
+    if (arg === "--no-mcp") {
+      if (!injected && !args.includes("--ignore-user-config")) {
+        out.push("--ignore-user-config");
+      }
+      injected = true;
+      continue;
+    }
+    out.push(arg);
+  }
+  return out;
+}
+
 export async function runCodexNebius(options: CodexLaunchOptions): Promise<CodexLaunchResult> {
-  const args = options.args ?? [];
+  const args = applyNoMcp(options.args ?? []);
   if (!codexArgsIgnoreUserConfig(args)) {
     await ensureCodexGenericUserDefaults(options.home);
   }

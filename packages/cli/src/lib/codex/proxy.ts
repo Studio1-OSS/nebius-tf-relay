@@ -5,6 +5,7 @@ import type { CostTracker } from "../cost.js";
 import { createProxyPerfTracer, type ProxyPerfSink } from "../proxy-perf.js";
 import { readJsonBodyWithSize, requestPath, writeJson } from "../http-util.js";
 import { writeProxyDebugLog } from "../proxy-debug.js";
+import { recordAgentModel } from "../model-preferences.js";
 import { objectKeys } from "./content-format.js";
 import {
   resolveCodexRequestModel,
@@ -90,6 +91,12 @@ export async function handleCodexProxyRequest(
     const toolTranslation = translateCodexRequestTools(body);
     const nativeToolCount = toolTranslation.nativeTools.length;
     const requestModel = resolveCodexRequestModel(body, options);
+    // Remember the user's model across launches: record the model this turn
+    // targets, unless it's a memory turn (which uses a fixed memory model, not
+    // the user's pick). Fire-and-forget; never blocks the request.
+    if (!requestModel.memory) {
+      void recordAgentModel("codex", requestModel.targetModelId);
+    }
     const translatedPayload = toChatPayload(
       body,
       options,

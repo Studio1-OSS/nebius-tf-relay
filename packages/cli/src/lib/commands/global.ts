@@ -27,6 +27,13 @@ Usage:
 Extra args after codex/claude/pi/opencode are passed through.
 ChatGPT App support is alpha; run \`nebiusrelay chatgpt --restore\` (alias: codex-app) to restore the previous desktop config.
 
+Codex flags:
+  --no-mcp   Skip your ~/.codex/config.toml MCP servers for a fast startup
+             (maps to codex --ignore-user-config; also skips other codex config).
+
+Your last-used model is remembered per tool: change it with /model (or --model
+before the harness) and the next launch reuses it.
+
 Docs: https://nebius-tf-relay.vercel.app/llms.txt
   LLM-readable documentation - if you are an AI agent asked to install, configure,
   or use nebiusrelay (including headless use), read that file first.

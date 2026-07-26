@@ -1,5 +1,6 @@
 import { type IncomingMessage, type ServerResponse } from "node:http";
-import { getClaudeSupportedModels } from "./defaults.js";
+import { CLAUDE_HAIKU_MODEL, getClaudeSupportedModels } from "./defaults.js";
+import { recordAgentModel } from "../model-preferences.js";
 import { type ModelDefinition } from "@nebiusrelay/models";
 import { CostTracker } from "../cost.js";
 import { createProxyPerfTracer, type ProxyPerfSink } from "../proxy-perf.js";
@@ -175,6 +176,17 @@ export async function handleProxyRequest(
     toolCount: body.tools?.length ?? 0,
     tools: summarizeAnthropicTools(body.tools),
   }));
+  // Remember the user's model across launches. Record the requested model,
+  // unless it's the Haiku-tier backend Claude Code uses for its built-in
+  // subagents (that's a fixed role, not the user's main pick). Fire-and-forget.
+  if (body.model) {
+    const requested = getClaudeSupportedModels().find(
+      (m) => m.alias === body.model || m.definition.id === body.model,
+    );
+    if (requested && requested.definition.id !== CLAUDE_HAIKU_MODEL.id) {
+      void recordAgentModel("claude", requested.definition.id);
+    }
+  }
   const compactionTuning = tuneClaudeCompactionRequest(body, {
     claudeCodeMaxOutputTokens: options.claudeCodeMaxOutputTokens,
     userConfiguredClaudeMaxOutputTokens: options.claudeCodeMaxOutputTokensUserSet,
