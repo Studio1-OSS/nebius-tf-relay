@@ -133,18 +133,18 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
     order: 5, // was the default; Nebius removed it from the live catalog (2026-07-27)
   },
   "moonshotai/Kimi-K2.6": {
-    name: "Kimi K2.6 · default",
+    name: "Kimi K2.6 · vision",
     anthropicAlias: "nebius-kimi-k2-6",
     outputLimit: 131_000,
-    order: 0, // the default model (see DEFAULT_MODEL_ID)
-    visionRank: 0, // also the vision flagship: primary for image description
+    order: 10,
+    visionRank: 0, // vision flagship: primary for image description
   },
   "moonshotai/Kimi-K3": {
-    name: "Kimi K3",
+    name: "Kimi K3 · default",
     anthropicAlias: "nebius-kimi-k3",
     outputLimit: 131_072,
     minContext: 262_144, // API reports a placeholder 8000 (real model is ~1M)
-    order: 12, // was briefly the default; Nebius K3 capacity is unreliable (2026-07-27)
+    order: 0, // the default model
   },
   "moonshotai/Kimi-K2.7-Code": {
     name: "Kimi K2.7 Code",
@@ -179,12 +179,12 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
 };
 
 /**
- * The pinned default model id. Kept stable so both harnesses agree. Kimi-K2.6
- * since 2026-07-27: GLM-5.2 was removed from Nebius, and Kimi-K3 (the brief
- * replacement) proved too capacity-constrained on Nebius to serve reliably
- * (header + SSE-idle timeouts). K2.6 is healthy, cheaper, and vision-capable.
+ * The pinned default model id. Kept stable so both harnesses agree. Kimi-K3
+ * since 2026-07-27, when Nebius removed GLM-5.2 from the live catalog. Note:
+ * K3's Nebius capacity can be flaky (occasional header/SSE-idle timeouts); the
+ * 120s response-header timeout and reasoning cap mitigate it.
  */
-export const DEFAULT_MODEL_ID = "moonshotai/Kimi-K2.6";
+export const DEFAULT_MODEL_ID = "moonshotai/Kimi-K3";
 
 /**
  * Nebius model ids verified to accept the OpenAI `reasoning_effort` parameter.

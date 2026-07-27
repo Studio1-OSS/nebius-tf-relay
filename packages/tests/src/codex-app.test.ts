@@ -133,7 +133,7 @@ describe("Codex App alpha config", () => {
     const first = catalog.models[0];
 
     expect(first).toBeDefined();
-    expect(first?.display_name).toBe("Kimi K2.6 · default");
+    expect(first?.display_name).toBe("Kimi K3 · default");
     expect(first?.shell_type).toBe("shell_command");
     // Reasoning models expose effort levels; non-reasoning models use "none".
     // Default to "minimal" (proxy maps it to no reasoning) so trivial turns stay
@@ -179,13 +179,12 @@ describe("Codex App alpha config", () => {
     // Per-model capability flags must be derived from the model definition,
     // not hardcoded off, so vision/tool-calling models are advertised correctly.
     expect(first?.supports_parallel_tool_calls).toBe(true);
-    // The default (Kimi K2.6) is vision-capable, so image input must be advertised.
-    expect(first?.supports_image_detail_original).toBe(true);
-    expect(first?.input_modalities).toEqual(["text", "image"]);
+    expect(first?.supports_image_detail_original).toBe(false); // Kimi-K3 is text-only
+    expect(first?.input_modalities).toEqual(["text"]);
 
-    // A text-only model in the catalog must NOT advertise image input.
-    const textOnly = catalog.models.find((m) => m.slug === "moonshotai/Kimi-K2.7-Code");
-    expect(textOnly?.supports_image_detail_original).toBe(false);
-    expect(textOnly?.input_modalities).toEqual(["text"]);
+    // A vision-capable model in the catalog must advertise image input.
+    const vision = catalog.models.find((m) => m.slug === "moonshotai/Kimi-K2.6");
+    expect(vision?.supports_image_detail_original).toBe(true);
+    expect(vision?.input_modalities).toEqual(["text", "image"]);
   });
 });
