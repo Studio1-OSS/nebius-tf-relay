@@ -1,7 +1,5 @@
 # Nebius TF Relay
 
-![Nebius TF Relay hero](assets/nebiusrelay-hero.png)
-
 Run your local coding agents on [Nebius Token Factory](https://tokenfactory.nebius.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, and **Pi** all talk to open-weight models (GLM 5.2, Kimi K2, Qwen 3.5, DeepSeek V4, MiniMax M3) instead of their default backends.
 
 ```bash
