@@ -22,7 +22,7 @@ describe("Nebius response-header timeout", () => {
     }
   });
 
-  test("defaults to 30 seconds before rejecting a response-header stall", async () => {
+  test("defaults to 120 seconds before rejecting a response-header stall", async () => {
     vi.useFakeTimers();
     vi.stubEnv("NEBIUSRELAY_REQUEST_DIAGNOSTICS", "0");
     vi.stubEnv("NEBIUSRELAY_RESPONSE_HEADER_TIMEOUT_MS", "");
@@ -44,7 +44,7 @@ describe("Nebius response-header timeout", () => {
       { apiKey: "redacted" },
     ).catch((caught: unknown) => caught);
 
-    await vi.advanceTimersByTimeAsync(29_999);
+    await vi.advanceTimersByTimeAsync(119_999);
     let settled = false;
     void pending.finally(() => {
       settled = true;
@@ -55,7 +55,7 @@ describe("Nebius response-header timeout", () => {
     await vi.advanceTimersByTimeAsync(1);
     await expect(pending).resolves.toMatchObject({
       name: "NebiusResponseHeaderTimeoutError",
-      timeoutMs: 30_000,
+      timeoutMs: 120_000,
     });
   });
 

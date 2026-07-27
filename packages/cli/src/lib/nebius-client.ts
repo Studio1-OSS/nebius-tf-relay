@@ -39,7 +39,12 @@ const RETRYABLE_STATUSES = new Set([429, 503]);
 
 export const MAX_RETRIES = 3;
 const DEFAULT_STREAM_RETRIES = 1;
-const DEFAULT_RESPONSE_HEADER_TIMEOUT_MS = 30_000;
+// Time to wait for Nebius to return the first response headers before giving
+// up. 30s was too aggressive: popular models (e.g. Kimi-K3) get queued under
+// Nebius load, and large prompts take seconds to prefill, so the headers can
+// legitimately take >30s to arrive. 120s lets a queued/large request complete
+// instead of failing. Override with NEBIUSRELAY_RESPONSE_HEADER_TIMEOUT_MS.
+const DEFAULT_RESPONSE_HEADER_TIMEOUT_MS = 120_000;
 
 export type NebiusResponseDiagnostics = {
   clientRequestId: string;

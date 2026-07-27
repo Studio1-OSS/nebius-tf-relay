@@ -1,6 +1,6 @@
 {
   "name": "@nebiusrelay/cli",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "description": "CLI for routing Claude Code, OpenCode, Codex, and Pi Code through Nebius Token Factory",
   "license": "MIT",
   "bin": {
