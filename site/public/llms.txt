@@ -94,7 +94,7 @@ Backups of your original config live under `~/.nebiusrelay/backup/codex-app/`.
 
 ## Models
 
-The model list is fetched live from Nebius (`GET /v1/models?verbose=true`) at startup, so every model Nebius serves is available and each model's vision support (modality) comes straight from the API, not a hand-maintained list. Results are cached in `~/.nebiusrelay/model-catalog.json` and fall back to a bundled snapshot when offline. The default for Codex and Claude Code is Kimi K3.
+The model list is fetched live from Nebius (`GET /v1/models?verbose=true`) at startup, so every model Nebius serves is available and each model's vision support (modality) comes straight from the API, not a hand-maintained list. Results are cached in `~/.nebiusrelay/model-catalog.json` and fall back to a bundled snapshot when offline. The default for Codex and Claude Code is Kimi K2.6.
 
 ### Selecting a model (flag order matters)
 
@@ -106,12 +106,12 @@ nebiusrelay --model moonshotai/Kimi-K2.6 claude -p "task"
 nebiusrelay --main nebius-kimi-k2-7-code claude -p "task"   # Claude matches alias OR id
 ```
 
-Do NOT put `--model` after the harness (e.g. `ncodex --model X` or `nclaude --model X`). The short aliases expand to `nebiusrelay <harness> ...`, so the flag lands after the harness name, goes to the agent's passthrough, and is then stripped - it is silently ignored and the run uses the default (Kimi K3), not the model you asked for. Always use the long form with the flag first.
+Do NOT put `--model` after the harness (e.g. `ncodex --model X` or `nclaude --model X`). The short aliases expand to `nebiusrelay <harness> ...`, so the flag lands after the harness name, goes to the agent's passthrough, and is then stripped - it is silently ignored and the run uses the default (Kimi K2.6), not the model you asked for. Always use the long form with the flag first.
 
 Featured flagship models (any live Nebius id also works with `--model`):
 
-- `moonshotai/Kimi-K3` - Kimi K3. Text-only, reasoning + agentic coding. The default coding model.
-- `moonshotai/Kimi-K2.6` - Kimi K2.6. Vision, 262K context, reasoning. The vision flagship.
+- `moonshotai/Kimi-K2.6` - Kimi K2.6. Vision + reasoning, 262K context. The default coding model and vision flagship.
+- `moonshotai/Kimi-K3` - Kimi K3. Text-only, reasoning + agentic coding. Newer but Nebius capacity for it is currently unreliable (timeouts), so it is not the default.
 - `moonshotai/Kimi-K2.7-Code` - Kimi K2.7 Code. Text-only coding model, 262K context.
 - `MiniMaxAI/MiniMax-M3` - MiniMax M3. Text-only, 196K context, fast and cheap.
 - `Qwen/Qwen3.5-397B-A17B` - Qwen 3.5 397B. Text-only, 262K context, general/coding flagship.

@@ -94,7 +94,7 @@ describe("daemon lazy codex-app session restore", () => {
     const response = await fetch(`${daemon.url}/session/${TOKEN}/v1/models`);
     expect(response.status).toBe(200);
     const catalog = (await response.json()) as { models?: Array<{ slug?: string }> };
-    expect(catalog.models?.[0]?.slug).toBe("moonshotai/Kimi-K3");
+    expect(catalog.models?.[0]?.slug).toBe("moonshotai/Kimi-K2.6");
 
     const sessions = await listSessions();
     expect(sessions).toHaveLength(1);

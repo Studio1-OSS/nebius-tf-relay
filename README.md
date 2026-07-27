@@ -1,6 +1,6 @@
 # Nebius TF Relay
 
-Run your local coding agents on [Nebius Token Factory](https://tokenfactory.nebius.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, and **Pi** all talk to open-weight models (Kimi K3, Kimi K2.6, Qwen 3.5, DeepSeek V4, MiniMax M3) instead of their default backends.
+Run your local coding agents on [Nebius Token Factory](https://tokenfactory.nebius.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, and **Pi** all talk to open-weight models (Kimi K2.6, Kimi K3, Qwen 3.5, DeepSeek V4, MiniMax M3) instead of their default backends.
 
 ```bash
 curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh
@@ -75,19 +75,19 @@ ncodex exec "add a test for the parser"
 
 ## Models
 
-The model list is **fetched live** from Nebius (`GET /v1/models?verbose=true`) at startup, so every model Nebius serves is available and each model's vision support comes straight from the API's modality field, never a hand-maintained list. Results are cached in `~/.nebiusrelay/` and fall back to a bundled snapshot when offline. The default coding model is **Kimi K3**; switch inside your agent or with `--model`.
+The model list is **fetched live** from Nebius (`GET /v1/models?verbose=true`) at startup, so every model Nebius serves is available and each model's vision support comes straight from the API's modality field, never a hand-maintained list. Results are cached in `~/.nebiusrelay/` and fall back to a bundled snapshot when offline. The default coding model is **Kimi K2.6**; switch inside your agent or with `--model`.
 
 Featured flagships:
 
-| Model                   | Best for                  | Context | Vision |
-| ----------------------- | ------------------------- | ------- | ------ |
-| **Kimi K3** _(default)_ | General coding + agentic  | 262K    | No     |
-| Kimi K2.6               | Vision flagship           | 262K    | Yes    |
-| Kimi K2.7 Code          | Coding                    | 262K    | No     |
-| MiniMax M3              | Fast, cheap               | 196K    | No     |
-| Qwen 3.5 397B           | General / coding flagship | 262K    | No     |
-| DeepSeek V4 Pro         | Long-context reasoning    | 1M      | No     |
-| Qwen2.5-VL 72B          | Vision fallback           | 32K     | Yes    |
+| Model                     | Best for                  | Context | Vision |
+| ------------------------- | ------------------------- | ------- | ------ |
+| **Kimi K2.6** _(default)_ | General coding + vision   | 262K    | Yes    |
+| Kimi K3                   | Agentic coding (see note) | 262K    | No     |
+| Kimi K2.7 Code            | Coding                    | 262K    | No     |
+| MiniMax M3                | Fast, cheap               | 196K    | No     |
+| Qwen 3.5 397B             | General / coding flagship | 262K    | No     |
+| DeepSeek V4 Pro           | Long-context reasoning    | 1M      | No     |
+| Qwen2.5-VL 72B            | Vision fallback           | 32K     | Yes    |
 
 Claude Code and Codex are text-native; image blocks are auto-routed to a vision-capable model (Kimi K2.6, then Qwen2.5-VL). OpenCode uses a dedicated `@vision` subagent pinned to the vision flagship. Run `scripts/list-nebius-models.mjs` (with `NEBIUS_API_KEY` set) to print the raw catalog Nebius serves.
 
