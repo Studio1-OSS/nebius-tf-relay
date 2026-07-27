@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node scripts/run-vitest.mjs",
+    "test:offline": "vitest run --config vitest.config.ts --exclude '**/Claude.test.ts' --exclude '**/Codex.test.ts' --exclude '**/OpenCode.test.ts' --exclude '**/Pi.test.ts' --exclude '**/livemodelscheck.test.ts' --exclude '**/daemon-session-auth.test.ts' --exclude '**/LiveSmoke.test.ts' --exclude '**/LiveCodexResume.test.ts'",
     "test:live-smoke": "NEBIUSRELAY_LIVE_SMOKE=1 node scripts/run-vitest.mjs src/LiveSmoke.test.ts",
     "test:live-codex-resume": "NEBIUSRELAY_LIVE_CODEX_RESUME=1 VITEST_FILE_PARALLELISM=0 node scripts/run-vitest.mjs src/LiveCodexResume.test.ts",
     "test:live-models-check": "NEBIUSRELAY_LIVE_MODELS_CHECK=1 VITEST_MAX_CONCURRENCY=${VITEST_MAX_CONCURRENCY:-6} node scripts/run-vitest.mjs src/livemodelscheck.test.ts",

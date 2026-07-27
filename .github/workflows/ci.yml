@@ -1,0 +1,53 @@
+name: CI
+
+# Fast, free checks on every push/PR: formatting, typecheck, build, and the
+# offline test suite (no live inference, no secrets). The expensive real-model
+# tests live in live-agent-gauntlet.yml, which runs on demand only.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Build, typecheck & offline tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "11.9.0"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --config.confirmModulesPurge=false
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build CLI + models
+        run: pnpm exec turbo run build --filter @nebiusrelay/models --filter @nebiusrelay/cli
+
+      - name: Offline tests
+        run: pnpm test:offline

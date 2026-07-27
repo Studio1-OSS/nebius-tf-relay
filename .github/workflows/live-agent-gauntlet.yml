@@ -1,5 +1,10 @@
 name: Live Agent Gauntlet
 
+# On-demand ONLY. These are real-inference tests: they install four coding-agent
+# CLIs and run live turns against Nebius, so they need the NEBIUS_API_KEY repo
+# secret and consume API credits. Run them from the Actions tab (or `gh workflow
+# run "Live Agent Gauntlet"`) when you want a full live verification. Every-push
+# checks live in ci.yml (offline, free).
 on:
   workflow_dispatch:
     inputs:
@@ -15,20 +20,6 @@ on:
           - live-models-check
           - opencode
           - pi
-
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/live-agent-gauntlet.yml"
-      - ".oxfmtrc.json"
-      - "package.json"
-      - "packages/cli/**"
-      - "packages/models/**"
-      - "packages/tests/**"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "site/**"
 
 concurrency:
   group: live-agent-gauntlet-${{ github.ref }}

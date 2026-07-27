@@ -17,6 +17,7 @@
     "format:check": "oxfmt --check .",
     "hooks:install": "lefthook install",
     "test": "pnpm -F @nebiusrelay/tests test",
+    "test:offline": "pnpm -F @nebiusrelay/tests test:offline",
     "bench:proxy": "pnpm -F @nebiusrelay/tests bench:proxy",
     "capture:proxy-fixtures": "pnpm -F @nebiusrelay/tests capture:proxy-fixtures",
     "watch": "pnpm dev",
