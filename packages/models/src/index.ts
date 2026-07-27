@@ -126,11 +126,11 @@ type ModelOverride = {
 
 const CURATED_OVERRIDES: Record<string, ModelOverride> = {
   "zai-org/GLM-5.2": {
-    name: "GLM 5.2 · default",
+    name: "GLM 5.2",
     anthropicAlias: "nebius-glm-5-2",
     outputLimit: 164_000,
     minContext: 262_144, // API reports a placeholder 8000
-    order: 0,
+    order: 5, // was the default; Nebius removed it from the live catalog (2026-07-27)
   },
   "moonshotai/Kimi-K2.6": {
     name: "Kimi K2.6 · vision",
@@ -139,11 +139,11 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
     visionRank: 0, // vision flagship: primary for image description
   },
   "moonshotai/Kimi-K3": {
-    name: "Kimi K3",
+    name: "Kimi K3 · default",
     anthropicAlias: "nebius-kimi-k3",
     outputLimit: 131_072,
-    minContext: 262_144, // API reports a placeholder 8000
-    order: 15,
+    minContext: 262_144, // API reports a placeholder 8000 (real model is ~1M)
+    order: 0, // the default model (GLM-5.2 was removed from Nebius 2026-07-27)
   },
   "moonshotai/Kimi-K2.7-Code": {
     name: "Kimi K2.7 Code",
@@ -177,8 +177,11 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
   },
 };
 
-/** The pinned default model id. Kept stable so both harnesses agree. */
-export const DEFAULT_MODEL_ID = "zai-org/GLM-5.2";
+/**
+ * The pinned default model id. Kept stable so both harnesses agree. Kimi-K3
+ * since 2026-07-27, when Nebius removed GLM-5.2 from the live catalog.
+ */
+export const DEFAULT_MODEL_ID = "moonshotai/Kimi-K3";
 
 /**
  * Nebius model ids verified to accept the OpenAI `reasoning_effort` parameter.

@@ -362,7 +362,7 @@ function Home() {
                 away.
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
-                {["GLM 5.2", "Kimi K2.6", "Qwen 3.5", "DeepSeek V4", "MiniMax M3"].map((m) => (
+                {["Kimi K3", "Kimi K2.6", "Qwen 3.5", "DeepSeek V4", "MiniMax M3"].map((m) => (
                   <span
                     key={m}
                     className="rounded-full bg-white/[.08] px-3 py-1.5 font-mono text-[12px] text-white/75 ring-1 ring-white/10"

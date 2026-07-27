@@ -116,4 +116,19 @@ export const CATALOG_SNAPSHOT: readonly NebiusApiModel[] = [
       image: "0",
     },
   },
+  {
+    id: "moonshotai/Kimi-K3",
+    name: "Kimi-K3",
+    description:
+      "Moonshot AI's Kimi K3 frontier open-weights MoE model (MXFP4, 1M context) with MTP speculative decoding, strong agentic tool use, reasoning, and coding.",
+    context_length: 8000,
+    architecture: {
+      modality: "text->text",
+    },
+    pricing: {
+      prompt: "0.000003",
+      completion: "0.000015",
+      image: "0",
+    },
+  },
 ];

@@ -133,7 +133,7 @@ describe("Codex App alpha config", () => {
     const first = catalog.models[0];
 
     expect(first).toBeDefined();
-    expect(first?.display_name).toBe("GLM 5.2 · default");
+    expect(first?.display_name).toBe("Kimi K3 · default");
     expect(first?.shell_type).toBe("shell_command");
     // Reasoning models expose effort levels; non-reasoning models use "none".
     // Default to "minimal" (proxy maps it to no reasoning) so trivial turns stay
