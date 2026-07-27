@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { findModelById, MINIMAX_M3, type ModelDefinition } from "@nebiusrelay/models";
+import {
+  acceptsReasoningEffort,
+  findModelById,
+  MINIMAX_M3,
+  type ModelDefinition,
+} from "@nebiusrelay/models";
 import { writeProxyDebugLog } from "../proxy-debug.js";
 import {
   nativeToolMaxUses as sharedNativeToolMaxUses,
@@ -631,11 +636,11 @@ function reasoningEffort(body: ResponsesRequest, model: ModelDefinition): string
   if (!model.reasoning) {
     return undefined;
   }
-  if (model.id === "zai-org/GLM-5.2") {
-    // Mirror the Claude proxy: GLM-5.2 reasons on every turn unless told not to,
-    // which dominates latency. Honor an explicit effort, else default to a fast
-    // "none" (overridable with NEBIUSRELAY_REASONING_EFFORT). See the note on
-    // defaultReasoningEffort in claude/translate-request.ts.
+  if (acceptsReasoningEffort(model.id)) {
+    // Mirror the Claude proxy: GLM-5.2 and Kimi-K3 reason on every turn unless
+    // told not to, which dominates latency. Honor an explicit effort, else
+    // default to a fast "none" (overridable with NEBIUSRELAY_REASONING_EFFORT).
+    // See the note on defaultReasoningEffort in claude/translate-request.ts.
     if (effort === "high" || effort === "xhigh" || effort === "max") {
       return "max";
     }

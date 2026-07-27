@@ -1,4 +1,4 @@
-import { GLM_5_2, type ModelDefinition } from "@nebiusrelay/models";
+import { acceptsReasoningEffort, type ModelDefinition } from "@nebiusrelay/models";
 import {
   nativeToolMaxUses as sharedNativeToolMaxUses,
   runWebSearchDetailed as runSharedWebSearchDetailed,
@@ -46,9 +46,11 @@ export function nebiusReasoningEffort(
   body: AnthropicMessagesRequest,
   targetModel: ModelDefinition,
 ): NebiusReasoningEffort | undefined {
-  // Only send reasoning_effort to models known to accept it. GLM-5.2 is the
-  // verified case; other Nebius models may reject the parameter.
-  if (targetModel.id !== GLM_5_2.id) {
+  // Only send reasoning_effort to models known to accept it (GLM-5.2, Kimi-K3);
+  // other Nebius models may reject the parameter. Both are hybrid reasoners that
+  // reason on every turn without an explicit effort, so capping it keeps trivial
+  // turns fast and prevents runaway output.
+  if (!acceptsReasoningEffort(targetModel.id)) {
     return undefined;
   }
 

@@ -138,6 +138,13 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
     order: 10,
     visionRank: 0, // vision flagship: primary for image description
   },
+  "moonshotai/Kimi-K3": {
+    name: "Kimi K3",
+    anthropicAlias: "nebius-kimi-k3",
+    outputLimit: 131_072,
+    minContext: 262_144, // API reports a placeholder 8000
+    order: 15,
+  },
   "moonshotai/Kimi-K2.7-Code": {
     name: "Kimi K2.7 Code",
     anthropicAlias: "nebius-kimi-k2-7-code",
@@ -172,6 +179,23 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
 
 /** The pinned default model id. Kept stable so both harnesses agree. */
 export const DEFAULT_MODEL_ID = "zai-org/GLM-5.2";
+
+/**
+ * Nebius model ids verified to accept the OpenAI `reasoning_effort` parameter.
+ * These are hybrid reasoners that reason on every turn unless told not to, so
+ * the proxy sends them an explicit effort (defaulting to a fast "none") to keep
+ * trivial turns snappy and prevent runaway reasoning. Other models may reject
+ * the parameter, so it is only sent to ids in this set.
+ */
+export const REASONING_EFFORT_MODEL_IDS: ReadonlySet<string> = new Set([
+  "zai-org/GLM-5.2",
+  "moonshotai/Kimi-K3",
+]);
+
+/** Whether a model accepts the `reasoning_effort` parameter. */
+export function acceptsReasoningEffort(modelId: string): boolean {
+  return REASONING_EFFORT_MODEL_IDS.has(modelId);
+}
 
 const ORDER_FALLBACK = 1_000;
 const DEFAULT_OUTPUT_LIMIT = 32_768;
