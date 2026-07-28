@@ -39,12 +39,117 @@ const RETRYABLE_STATUSES = new Set([429, 503]);
 
 export const MAX_RETRIES = 3;
 const DEFAULT_STREAM_RETRIES = 1;
-// Time to wait for Nebius to return the first response headers before giving
-// up. 30s was too aggressive: popular models (e.g. Kimi-K3) get queued under
-// Nebius load, and large prompts take seconds to prefill, so the headers can
-// legitimately take >30s to arrive. 120s lets a queued/large request complete
-// instead of failing. Override with NEBIUSRELAY_RESPONSE_HEADER_TIMEOUT_MS.
-const DEFAULT_RESPONSE_HEADER_TIMEOUT_MS = 120_000;
+// Time to wait for Nebius to return the first response headers before failing
+// over. 45s catches genuinely-slow-but-working models (large prefill, light
+// queuing) while failing over reasonably fast when a model's Nebius endpoint is
+// down. On failover the request is retried on the fallback model (see
+// withModelFallback), and the circuit breaker then routes subsequent turns
+// straight to the fallback, so this timeout is only paid once per outage.
+// Override with NEBIUSRELAY_RESPONSE_HEADER_TIMEOUT_MS.
+const DEFAULT_RESPONSE_HEADER_TIMEOUT_MS = 45_000;
+
+// Automatic model fallback: when a request's target model returns no response
+// headers (its Nebius endpoint is down/overloaded), the relay transparently
+// re-issues the SAME request on a healthy fallback model instead of surfacing
+// an error - so a provider-side outage of one model (e.g. Kimi-K3) doesn't
+// break sessions mid-flight. A short-lived per-model circuit breaker then skips
+// the dead model entirely for a cooldown window, so only the first failing turn
+// pays the timeout. Configure with NEBIUSRELAY_FALLBACK_MODEL (set to
+// "off"/"none" to disable) and NEBIUSRELAY_FALLBACK_COOLDOWN_MS.
+const DEFAULT_FALLBACK_MODEL = "moonshotai/Kimi-K2.6";
+const DEFAULT_FALLBACK_COOLDOWN_MS = 60_000;
+
+/** model id -> epoch ms of its last response-header timeout (circuit breaker). */
+const unhealthySince = new Map<string, number>();
+
+function fallbackModel(): string | undefined {
+  const raw = process.env.NEBIUSRELAY_FALLBACK_MODEL;
+  if (raw === undefined) {
+    return DEFAULT_FALLBACK_MODEL;
+  }
+  const trimmed = raw.trim();
+  const lower = trimmed.toLowerCase();
+  if (trimmed === "" || lower === "off" || lower === "none" || lower === "0") {
+    return undefined;
+  }
+  return trimmed;
+}
+
+function fallbackCooldownMs(): number {
+  const raw = Number.parseInt(process.env.NEBIUSRELAY_FALLBACK_COOLDOWN_MS ?? "", 10);
+  return Number.isFinite(raw) && raw >= 0 ? raw : DEFAULT_FALLBACK_COOLDOWN_MS;
+}
+
+function markModelUnhealthy(model: string): void {
+  unhealthySince.set(model, Date.now());
+}
+
+function isModelUnhealthy(model: string): boolean {
+  const at = unhealthySince.get(model);
+  return at !== undefined && Date.now() - at < fallbackCooldownMs();
+}
+
+/** Rewrite the `model` field of a serialized chat-completions body. */
+function withModelReplaced(body: string, model: string): string {
+  try {
+    const parsed = JSON.parse(body) as Record<string, unknown>;
+    parsed.model = model;
+    return JSON.stringify(parsed);
+  } catch {
+    return body;
+  }
+}
+
+function logFallback(reason: "circuit_open" | "header_timeout", from: string, to: string): void {
+  void persistRequestDiagnostic({
+    phase: "fallback",
+    reason,
+    clientRequestId: randomUUID(),
+    model: to,
+    error:
+      reason === "circuit_open"
+        ? `Model ${from} is in cooldown after a timeout; serving ${to} instead.`
+        : `Model ${from} returned no response headers; failing over to ${to}.`,
+  }).catch(() => undefined);
+}
+
+/**
+ * Wrap a body-fetcher with automatic model fallback + circuit breaker. Covers
+ * both harnesses (Claude via postChatCompletionStream, Codex via
+ * postChatCompletion) since both fetch through this.
+ */
+function withModelFallback(
+  fetcher: (body: string) => Promise<Response>,
+  signal?: AbortSignal,
+): (body: string) => Promise<Response> {
+  return async (body: string): Promise<Response> => {
+    const fallback = fallbackModel();
+    const current = modelFromSerializedBody(body);
+
+    // Circuit open: the target model recently timed out - skip it entirely.
+    if (fallback && current && current !== fallback && isModelUnhealthy(current)) {
+      logFallback("circuit_open", current, fallback);
+      return fetcher(withModelReplaced(body, fallback));
+    }
+
+    try {
+      return await fetcher(body);
+    } catch (err) {
+      if (
+        err instanceof NebiusResponseHeaderTimeoutError &&
+        !signal?.aborted &&
+        fallback &&
+        current &&
+        current !== fallback
+      ) {
+        markModelUnhealthy(current);
+        logFallback("header_timeout", current, fallback);
+        return fetcher(withModelReplaced(body, fallback));
+      }
+      throw err;
+    }
+  };
+}
 
 export type NebiusResponseDiagnostics = {
   clientRequestId: string;
@@ -109,10 +214,13 @@ export async function postChatCompletion(
   signal?: AbortSignal,
   fit?: ContextFitConfig,
 ): Promise<Response> {
-  const doFetch = (body: string) =>
-    payload.stream === true
-      ? streamFetchOnce(body, options, signal)
-      : postChatCompletionOnce(body, options, signal);
+  const doFetch = withModelFallback(
+    (body: string) =>
+      payload.stream === true
+        ? streamFetchOnce(body, options, signal)
+        : postChatCompletionOnce(body, options, signal),
+    signal,
+  );
   if (!fit) {
     return doFetch(JSON.stringify(payload));
   }
@@ -179,7 +287,7 @@ export async function postChatCompletionStream(
   body?: string,
   fit?: ContextFitConfig,
 ): Promise<Response> {
-  const doFetch = (b: string) => streamFetchOnce(b, options, signal);
+  const doFetch = withModelFallback((b: string) => streamFetchOnce(b, options, signal), signal);
   if (body !== undefined || !fit) {
     return doFetch(body ?? JSON.stringify(payload));
   }

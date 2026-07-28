@@ -22,10 +22,11 @@ describe("Nebius response-header timeout", () => {
     }
   });
 
-  test("defaults to 120 seconds before rejecting a response-header stall", async () => {
+  test("defaults to 45 seconds before rejecting a response-header stall", async () => {
     vi.useFakeTimers();
     vi.stubEnv("NEBIUSRELAY_REQUEST_DIAGNOSTICS", "0");
     vi.stubEnv("NEBIUSRELAY_RESPONSE_HEADER_TIMEOUT_MS", "");
+    vi.stubEnv("NEBIUSRELAY_FALLBACK_MODEL", "off");
     vi.stubEnv("NEBIUSRELAY_RESPONSE_HEADER_RETRIES", "0");
     vi.stubGlobal(
       "fetch",
@@ -44,7 +45,7 @@ describe("Nebius response-header timeout", () => {
       { apiKey: "redacted" },
     ).catch((caught: unknown) => caught);
 
-    await vi.advanceTimersByTimeAsync(119_999);
+    await vi.advanceTimersByTimeAsync(44_999);
     let settled = false;
     void pending.finally(() => {
       settled = true;
@@ -55,7 +56,7 @@ describe("Nebius response-header timeout", () => {
     await vi.advanceTimersByTimeAsync(1);
     await expect(pending).resolves.toMatchObject({
       name: "NebiusResponseHeaderTimeoutError",
-      timeoutMs: 120_000,
+      timeoutMs: 45_000,
     });
   });
 
@@ -64,6 +65,7 @@ describe("Nebius response-header timeout", () => {
     vi.stubEnv("NEBIUSRELAY_HOME", temporaryHome);
     vi.stubEnv("NEBIUSRELAY_RESPONSE_HEADER_TIMEOUT_MS", "100");
     vi.stubEnv("NEBIUSRELAY_STREAM_RETRIES", "0");
+    vi.stubEnv("NEBIUSRELAY_FALLBACK_MODEL", "off");
     vi.stubGlobal(
       "fetch",
       vi.fn(
@@ -160,6 +162,7 @@ describe("Nebius response-header timeout", () => {
     vi.stubEnv("NEBIUSRELAY_HOME", temporaryHome);
     vi.stubEnv("NEBIUSRELAY_RESPONSE_HEADER_TIMEOUT_MS", "100");
     vi.stubEnv("NEBIUSRELAY_RESPONSE_HEADER_RETRIES", "1");
+    vi.stubEnv("NEBIUSRELAY_FALLBACK_MODEL", "off");
     const fetchMock = vi.fn(
       (_url: string, init?: RequestInit) =>
         new Promise<Response>((_resolve, reject) => {

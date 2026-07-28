@@ -97,14 +97,15 @@ Claude Code and Codex expose a native `web_search` tool. The relay backs it with
 
 ## Configuration & env vars
 
-| Variable                           | Effect                                                                                    |
-| ---------------------------------- | ----------------------------------------------------------------------------------------- |
-| `NEBIUS_API_KEY`                   | Nebius Token Factory key (or set via `configure`).                                        |
-| `TAVILY_API_KEY`                   | Enables web search (or set via `configure`).                                              |
-| `NEBIUS_BASE_URL`                  | Override the API base (default `https://api.tokenfactory.nebius.com/v1`).                 |
-| `NEBIUSRELAY_REASONING_EFFORT`     | `none`\|`low`\|`medium`\|`high`\|`max`. Default `none` for speed; raise for harder tasks. |
-| `NEBIUSRELAY_DISABLE_AUTOUPDATE=1` | Stop the installed binary from self-updating.                                             |
-| `NEBIUSRELAY_TELEMETRY_URL`        | Opt in to telemetry by pointing at your own collector. Off by default.                    |
+| Variable                           | Effect                                                                                                                                           |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NEBIUS_API_KEY`                   | Nebius Token Factory key (or set via `configure`).                                                                                               |
+| `TAVILY_API_KEY`                   | Enables web search (or set via `configure`).                                                                                                     |
+| `NEBIUS_BASE_URL`                  | Override the API base (default `https://api.tokenfactory.nebius.com/v1`).                                                                        |
+| `NEBIUSRELAY_REASONING_EFFORT`     | `none`\|`low`\|`medium`\|`high`\|`max`. Default `none` for speed; raise for harder tasks.                                                        |
+| `NEBIUSRELAY_FALLBACK_MODEL`       | Model to fail over to when the target model returns no response headers (down/overloaded). Default `moonshotai/Kimi-K2.6`; set `off` to disable. |
+| `NEBIUSRELAY_DISABLE_AUTOUPDATE=1` | Stop the installed binary from self-updating.                                                                                                    |
+| `NEBIUSRELAY_TELEMETRY_URL`        | Opt in to telemetry by pointing at your own collector. Off by default.                                                                           |
 
 The installed binary keeps itself up to date from `nebius-tf-relay.vercel.app`, throttled to once an hour, and swallows every failure. Dev/source runs never self-update.
 

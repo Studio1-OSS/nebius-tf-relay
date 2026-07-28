@@ -6,8 +6,15 @@ const REQUEST_DIAGNOSTICS_FILE = "request-diagnostics.jsonl";
 
 export type NebiusRequestDiagnostic = {
   at: string;
-  phase: "response_headers" | "sse";
-  reason: "timeout" | "network_error" | "caller_abort" | "idle_timeout" | "premature_close";
+  phase: "response_headers" | "sse" | "fallback";
+  reason:
+    | "timeout"
+    | "network_error"
+    | "caller_abort"
+    | "idle_timeout"
+    | "premature_close"
+    | "circuit_open"
+    | "header_timeout";
   clientRequestId: string;
   upstreamRequestId?: string | undefined;
   model?: string | undefined;
