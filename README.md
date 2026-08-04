@@ -2,6 +2,8 @@
 
 Run your local coding agents on [Nebius Token Factory](https://tokenfactory.nebius.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, and **Pi** all talk to open-weight models (Kimi K3, Kimi K2.6, Qwen 3.5, DeepSeek V4, MiniMax M3) instead of their default backends.
 
+Checkout this Youtube video: [![Watch the video](https://youtube.com)](https://www.youtube.com/watch?v=u8c_exTe2To)
+
 ```bash
 curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh
 ```
