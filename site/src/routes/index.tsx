@@ -50,6 +50,14 @@ const agents: Agent[] = [
     blurb:
       "Starts with a custom Nebius provider and a temporary config directory, while normal local session history keeps persisting.",
   },
+  {
+    name: "Prime Agent",
+    command: "nprime",
+    status: "Stable",
+    mark: <PrimeMark />,
+    blurb:
+      "PrimeIntellect's RLM agent, with its persistent IPython tool and subagents running on Nebius models. Your own Prime config stays untouched.",
+  },
 ];
 
 const steps = [
@@ -58,8 +66,8 @@ const steps = [
     body: (
       <>
         Run the one-liner. It drops <code>nebiusrelay</code> plus <code>nclaude</code>,{" "}
-        <code>ncodex</code>, <code>nopencode</code>, and <code>npi</code> onto your PATH and
-        installs Bun if you don&apos;t have it.
+        <code>ncodex</code>, <code>nopencode</code>, <code>npi</code>, and <code>nprime</code> onto
+        your PATH and installs Bun if you don&apos;t have it.
       </>
     ),
   },
@@ -92,8 +100,8 @@ const steps = [
 
 const features = [
   {
-    title: "One relay, four harnesses",
-    body: "Claude Code, Codex, OpenCode, and Pi Code all run on Nebius open models through a single local install.",
+    title: "One relay, five harnesses",
+    body: "Claude Code, Codex, OpenCode, Pi Code, and Prime Agent all run on Nebius open models through a single local install.",
   },
   {
     title: "Live web search, built in",
@@ -110,7 +118,7 @@ const features = [
 ];
 
 const stats = [
-  { value: "4", label: "coding agents" },
+  { value: "5", label: "coding agents" },
   { value: "1", label: "install command" },
   { value: "0", label: "config files rewritten" },
 ];
@@ -236,8 +244,9 @@ function Home() {
             </span>
           </h1>
           <p className="mx-auto mt-6 mb-9 max-w-[600px] text-pretty text-[18.5px] leading-relaxed text-muted">
-            A local relay that points Claude Code, Codex, OpenCode, and Pi Code at open models on
-            Nebius Token Factory, with short commands and zero edits to your real tool config.
+            A local relay that points Claude Code, Codex, OpenCode, Pi Code, and Prime Agent at open
+            models on Nebius Token Factory, with short commands and zero edits to your real tool
+            config.
           </p>
 
           {/* dark install card: the focal surface */}
@@ -357,7 +366,7 @@ function Home() {
                 Every agent.
               </h3>
               <p className="mt-4 max-w-[280px] text-[14.5px] leading-relaxed text-white/65">
-                One Nebius Token Factory key powers all four agents through a single local proxy.
+                One Nebius Token Factory key powers all five agents through a single local proxy.
                 The model list is pulled live from Nebius, so every model they serve is one command
                 away.
               </p>
@@ -623,6 +632,34 @@ function PiMark() {
         d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"
       />
       <path fill="currentColor" d="M517.36 400H634.72V634.72H517.36Z" />
+    </svg>
+  );
+}
+function PrimeMark() {
+  // Recursive/nested squares: the RLM idea of agents spawning agents.
+  return (
+    <svg className="size-[22px]" viewBox="0 0 24 24" aria-hidden="true">
+      <rect
+        x="2.5"
+        y="2.5"
+        width="19"
+        height="19"
+        rx="4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <rect
+        x="7.25"
+        y="7.25"
+        width="9.5"
+        height="9.5"
+        rx="2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <rect x="10.75" y="10.75" width="2.5" height="2.5" rx="0.6" fill="currentColor" />
     </svg>
   );
 }

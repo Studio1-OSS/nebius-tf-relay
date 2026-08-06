@@ -23,8 +23,9 @@ Usage:
   nebiusrelay claude [...]      (alias: nclaude)
   nebiusrelay pi [...]          (alias: npi)
   nebiusrelay opencode [...]    (alias: nopencode)
+  nebiusrelay prime [...]       (alias: nprime)
 
-Extra args after codex/claude/pi/opencode are passed through.
+Extra args after codex/claude/pi/opencode/prime are passed through.
 ChatGPT App support is alpha; run \`nebiusrelay chatgpt --restore\` (alias: codex-app) to restore the previous desktop config.
 
 Codex flags:

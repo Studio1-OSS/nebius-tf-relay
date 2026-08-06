@@ -1,6 +1,6 @@
 # Nebius TF Relay
 
-Run your local coding agents on [Nebius Token Factory](https://tokenfactory.nebius.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, and **Pi** all talk to open-weight models (Kimi K3, Kimi K2.6, Qwen 3.5, DeepSeek V4, MiniMax M3) instead of their default backends.
+Run your local coding agents on [Nebius Token Factory](https://tokenfactory.nebius.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, **Pi**, and **Prime Agent** all talk to open-weight models (Kimi K3, Kimi K2.6, Qwen 3.5, DeepSeek V4, MiniMax M3) instead of their default backends.
 
 Checkout this Youtube video: [![Watch the video](https://youtube.com)](https://www.youtube.com/watch?v=u8c_exTe2To)
 
@@ -21,13 +21,13 @@ nebiusrelay claude     # Claude Code on Nebius models (alias: nclaude)
 Nebius Token Factory serves open models over an OpenAI-compatible API. It does **not** speak the Anthropic Messages API (Claude Code) or the OpenAI Responses API (Codex). Nebius TF Relay runs a small local daemon that translates those wire formats to Nebius `/chat/completions` on the fly, so your agent believes it is talking to its native backend while every token is served by Nebius.
 
 - **Proxied harnesses** (Claude Code, Codex): a local daemon translates each request/response, tracks cost, retries transient failures, trims context to fit, and emulates native web search.
-- **Spawned harnesses** (OpenCode, Pi): launched with a generated provider config pointed at Nebius, no proxy needed.
+- **Spawned harnesses** (OpenCode, Pi, Prime Agent): launched with a generated provider config pointed at Nebius, no proxy needed (they already speak Nebius's OpenAI-compatible format).
 
 Nothing about your agent install changes. The relay injects a base URL and API key per session and writes nothing permanent to your agent's config.
 
 ## Install
 
-The one-liner installs the `nebiusrelay`, `nclaude`, `nopencode`, `ncodex`, and `npi` commands to `~/.nebiusrelay/bin/` and installs [Bun](https://bun.sh) for you if it isn't already present:
+The one-liner installs the `nebiusrelay`, `nclaude`, `nopencode`, `ncodex`, `npi`, and `nprime` commands to `~/.nebiusrelay/bin/` and installs [Bun](https://bun.sh) for you if it isn't already present:
 
 ```bash
 curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh
@@ -65,6 +65,7 @@ nebiusrelay claude       # alias: nclaude
 nebiusrelay codex        # alias: ncodex
 nebiusrelay opencode     # alias: nopencode
 nebiusrelay pi           # alias: npi
+nebiusrelay prime        # alias: nprime  (PrimeIntellect Prime Agent)
 nebiusrelay chatgpt      # alpha: ChatGPT Desktop session with restore (alias: codex-app)
 ```
 

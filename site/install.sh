@@ -6,7 +6,8 @@
 # Installs the nebiusrelay CLI as a Bun-target JS bundle at
 # ~/.nebiusrelay/bin/nebiusrelay.js, with a `nebiusrelay` wrapper script on
 # PATH that runs it with `bun`. Installs Bun for the user if `bun` isn't on
-# PATH. Also installs `nclaude`, `nopencode`, `ncodex`, and `npi` convenience wrappers.
+# PATH. Also installs `nclaude`, `nopencode`, `ncodex`, `npi`, and `nprime`
+# convenience wrappers.
 #
 # After install, the CLI prompts once for a Nebius API key on first use
 # (Enter skips - the key is optional). The CLI self-updates in the background.
@@ -90,7 +91,13 @@ exec bun "$BIN_DIR/nebiusrelay.js" pi "\$@"
 EOF
 chmod +x "$BIN_DIR/npi"
 
-ok "Wrappers installed: nebiusrelay, nclaude, nopencode, ncodex, npi → $BIN_DIR"
+cat > "$BIN_DIR/nprime" <<EOF
+#!/usr/bin/env sh
+exec bun "$BIN_DIR/nebiusrelay.js" prime "\$@"
+EOF
+chmod +x "$BIN_DIR/nprime"
+
+ok "Wrappers installed: nebiusrelay, nclaude, nopencode, ncodex, npi, nprime → $BIN_DIR"
 
 # Remove old nebiusrelay-owned wrappers that used the upstream agent names.
 # Current installs must never shadow `claude`, `codex`, or `opencode`; users
@@ -177,6 +184,7 @@ if LINK_DIR="$(find_writable_path_dir)"; then
   install_link nopencode "$BIN_DIR/nopencode"
   install_link ncodex "$BIN_DIR/ncodex"
   install_link npi "$BIN_DIR/npi"
+  install_link nprime "$BIN_DIR/nprime"
   if [ "$links_changed" -gt 0 ]; then
     ok "Linked $links_changed command(s) into current PATH → $LINK_DIR"
   fi

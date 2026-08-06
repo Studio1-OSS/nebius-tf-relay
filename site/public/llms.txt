@@ -1,21 +1,21 @@
 # nebiusrelay
 
-> Use Nebius Token Factory models in the coding-agent CLIs you already run - OpenCode, Claude Code, Codex CLI, and Pi Code. nebiusrelay injects Nebius settings for a single run so your normal tool configs stay untouched.
+> Use Nebius Token Factory models in the coding-agent CLIs you already run - OpenCode, Claude Code, Codex CLI, Pi Code, and Prime Agent. nebiusrelay injects Nebius settings for a single run so your normal tool configs stay untouched.
 
-nebiusrelay is an MIT-licensed CLI router. Install once, then launch your agent with short commands (`ncodex`, `nclaude`, `nopencode`, `npi`). For Claude Code and Codex CLI it routes the agent's API traffic to Nebius Token Factory through a local translation proxy; for OpenCode and Pi Code it injects ephemeral per-run config. The installed binary keeps itself up to date automatically from nebius-tf-relay.vercel.app.
+nebiusrelay is an MIT-licensed CLI router. Install once, then launch your agent with short commands (`ncodex`, `nclaude`, `nopencode`, `npi`, `nprime`). For Claude Code and Codex CLI it routes the agent's API traffic to Nebius Token Factory through a local translation proxy; for OpenCode, Pi Code, and Prime Agent it injects per-run provider config (they already speak Nebius's OpenAI-compatible format, so no proxy is needed). The installed binary keeps itself up to date automatically from nebius-tf-relay.vercel.app.
 
 This is the LLM-readable documentation file for the project. If you are an AI agent asked to install, configure, or use nebiusrelay (headless or interactive), read this file first. It covers installation, configuration, every command, the available models, headless/agentic usage patterns, how to keep the tool up to date, and the routing architecture.
 
-- Project: https://github.com
+- Project: https://github.com/shivaylamba/nebius-tf-relay
 - Website: https://nebius-tf-relay.vercel.app
 - Installer: https://nebius-tf-relay.vercel.app/install.sh
 - Version manifest: https://nebius-tf-relay.vercel.app/latest.json
-- README: https://github.com
+- README: https://github.com/shivaylamba/nebius-tf-relay/blob/main/README.md
 - This file: https://nebius-tf-relay.vercel.app/llms.txt
 
 ## Install
 
-One command installs the `nebiusrelay`, `nclaude`, `nopencode`, `ncodex`, and `npi` commands to `~/.nebiusrelay/bin/` and installs Bun for you if it isn't already present:
+One command installs the `nebiusrelay`, `nclaude`, `nopencode`, `ncodex`, `npi`, and `nprime` commands to `~/.nebiusrelay/bin/` and installs Bun for you if it isn't already present:
 
 ```
 curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh
@@ -24,9 +24,9 @@ curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh
 After install, restart your shell (or run the `export PATH=...` line it prints) so the commands are on PATH. The install:
 
 - Downloads the self-contained JS bundle to `~/.nebiusrelay/bin/nebiusrelay.js`.
-- Writes shell wrappers (`nebiusrelay`, `ncodex`, `nclaude`, `nopencode`, `npi`) that run the bundle with `bun`.
+- Writes shell wrappers (`nebiusrelay`, `ncodex`, `nclaude`, `nopencode`, `npi`, `nprime`) that run the bundle with `bun`.
 - Links them into a writable directory on your PATH.
-- Does NOT install the underlying agent CLIs. If a tool is missing, nebiusrelay prints its official install command and exits.
+- Does NOT install the underlying agent CLIs. If a tool is missing, nebiusrelay prints its official install command and exits (Prime Agent: `curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | sh`).
 
 To verify: `nebiusrelay --version`.
 
@@ -63,6 +63,7 @@ nebiusrelay codex [...]        # alias: ncodex   (Codex CLI)
 nebiusrelay claude [...]       # alias: nclaude  (Claude Code)
 nebiusrelay pi [...]           # alias: npi      (Pi Code)
 nebiusrelay opencode [...]     # alias: nopencode (OpenCode)
+nebiusrelay prime [...]        # alias: nprime   (Prime Agent, PrimeIntellect)
 
 nebiusrelay chatgpt [--model <model>] [--restore]   # alpha: ChatGPT Desktop (alias: codex-app)
 
@@ -219,7 +220,7 @@ There are two harness families behind the four tools:
 
 - **Proxied harnesses - Claude Code, Codex CLI.** `nclaude` and `ncodex` spawn a shared local daemon and route the agent's `/v1/*` traffic through it. The daemon translates the agent's native wire format (Anthropic Messages for Claude, OpenAI Responses for Codex) to Nebius's chat-completions API and back. Per run: it resolves the model, ensures the daemon, registers a session with your token, prints a banner, spawns the agent pointed at the local proxy, tracks cost, and deregisters on exit. Nothing is written to your real agent config - close it and your setup is exactly as it was.
 
-- **Spawned harnesses - OpenCode, Pi Code.** `nopencode` and `npi` spawn the agent binary directly. The binary talks to Nebius itself, using ephemeral config injected only for that launch (OpenCode) or a temporary `models.json` on disk (Pi). No daemon, no proxy.
+- **Spawned harnesses - OpenCode, Pi Code, Prime Agent.** `nopencode`, `npi`, and `nprime` spawn the agent binary directly. The binary talks to Nebius itself, using ephemeral config injected only for that launch (OpenCode), a temporary `models.json` on disk (Pi), or a relay-owned config dir under `~/.nebiusrelay/prime-agent` (Prime Agent). No daemon, no proxy.
 
 The daemon is one persistent local process shared by all proxied sessions. If you ever need to stop it manually:
 
