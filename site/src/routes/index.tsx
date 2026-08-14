@@ -53,7 +53,7 @@ const agents: Agent[] = [
   {
     name: "Prime Agent",
     command: "nprime",
-    status: "Stable",
+    status: "Beta",
     mark: <PrimeMark />,
     blurb:
       "PrimeIntellect's RLM agent, with its persistent IPython tool and subagents running on Nebius models. Your own Prime config stays untouched.",
