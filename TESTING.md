@@ -347,7 +347,7 @@ try {
 '
 ```
 
-Expected result for `nebiusrelay codex-app` is six visible models, starting with `zai-org/GLM-5.2` and display name `GLM 5.2 · default`. If this probe is correct but Desktop still shows stale or missing models, the bug is in the running Desktop process or frontend state, not the Codex app-server model manager.
+Expected result for `nebiusrelay codex-app` is the visible Nebius catalog models, starting with the current default model. If this probe is correct but Desktop still shows stale or missing models, the bug is in the running Desktop process or frontend state, not the Codex app-server model manager.
 
 Also verify the active Nebius TF Relay daemon session route returns the same catalog without calling Nebius:
 

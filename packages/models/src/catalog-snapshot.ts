@@ -2,7 +2,9 @@
  * Offline snapshot of the Nebius Token Factory verbose model catalog
  * (GET /v1/models?verbose=true), captured 2026-07-26. Used as the fallback
  * when the live fetch fails or has not run yet, and as the deterministic
- * source for the named model constants the test-suite imports.
+ * source for the named model constants the test-suite imports. A small number
+ * of newer fallback rows may be manually appended between captures so newly
+ * announced models are still selectable when offline.
  *
  * Regenerate with: pnpm -F @nebiusrelay/cli exec nebiusrelay ... (see
  * scripts/list-nebius-models.mjs) or re-run the capture in the models package.
@@ -83,6 +85,21 @@ export const CATALOG_SNAPSHOT: readonly NebiusApiModel[] = [
     pricing: {
       prompt: "0.0000006",
       completion: "0.0000036",
+      image: "0",
+    },
+  },
+  {
+    id: "deepseek-ai/DeepSeek-V4-Flash",
+    name: "DeepSeek-V4-Flash",
+    description:
+      "DeepSeek-V4-Flash is a fast, cost-effective V4 preview model for coding, reasoning, and agentic workflows.",
+    context_length: 1048576,
+    architecture: {
+      modality: "text->text",
+    },
+    pricing: {
+      prompt: "0",
+      completion: "0",
       image: "0",
     },
   },
