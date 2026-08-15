@@ -89,6 +89,7 @@ Featured flagships:
 | Kimi K2.7 Code          | Coding                    | 262K    | No     |
 | MiniMax M3              | Fast, cheap               | 196K    | No     |
 | Qwen 3.5 397B           | General / coding flagship | 262K    | No     |
+| DeepSeek V4 Flash       | Fast DeepSeek V4          | 1M      | No     |
 | DeepSeek V4 Pro         | Long-context reasoning    | 1M      | No     |
 | Qwen2.5-VL 72B          | Vision fallback           | 32K     | Yes    |
 

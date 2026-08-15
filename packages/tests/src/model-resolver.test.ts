@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEEPSEEK_V4_FLASH,
+  DEEPSEEK_V4_PRO,
   GLM_5_2,
   KIMI_K2_7_CODE,
   SELECTABLE_MODELS,
+  buildCatalog,
   resolveModelByKeys,
   type ModelDefinition,
 } from "@nebiusrelay/models";
@@ -47,6 +50,31 @@ describe("resolveModelByKeys", () => {
         GLM_5_2.id,
       )?.id,
     ).toBe(GLM_5_2.id);
+  });
+
+  it("includes DeepSeek V4 Flash and Pro aliases with long-context limits", () => {
+    expect(DEEPSEEK_V4_FLASH.anthropicAlias).toBe("nebius-deepseek-v4-flash");
+    expect(DEEPSEEK_V4_FLASH.limit.context).toBe(1_048_576);
+    expect(DEEPSEEK_V4_FLASH.limit.output).toBe(384_000);
+    expect(DEEPSEEK_V4_PRO.anthropicAlias).toBe("nebius-deepseek-v4-pro");
+    expect(DEEPSEEK_V4_PRO.limit.context).toBe(1_048_576);
+    expect(DEEPSEEK_V4_PRO.limit.output).toBe(384_000);
+  });
+
+  it("keeps bundled DeepSeek fallback rows when live catalog omits them", () => {
+    const catalog = buildCatalog([
+      {
+        id: "example/Only-Live-Model",
+        name: "Only Live Model",
+        context_length: 8000,
+        architecture: { modality: "text->text" },
+        pricing: { prompt: "0.0000001", completion: "0.0000002" },
+      },
+    ]);
+
+    expect(catalog.byId.has("example/Only-Live-Model")).toBe(true);
+    expect(catalog.byId.get(DEEPSEEK_V4_FLASH.id)?.limit.context).toBe(1_048_576);
+    expect(catalog.byId.get(DEEPSEEK_V4_PRO.id)?.limit.output).toBe(384_000);
   });
 
   it("returns undefined when the value matches no model", () => {

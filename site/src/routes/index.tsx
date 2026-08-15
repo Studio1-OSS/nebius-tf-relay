@@ -29,7 +29,7 @@ const agents: Agent[] = [
   {
     name: "Codex CLI",
     command: "ncodex",
-    status: "Beta",
+    status: "Stable",
     mark: <CodexMark />,
     blurb:
       "Talks to Nebius through a local Responses-to-chat proxy, with headless exec support. Sessions stay resumable across providers.",
@@ -53,7 +53,7 @@ const agents: Agent[] = [
   {
     name: "Prime Agent",
     command: "nprime",
-    status: "Stable",
+    status: "Beta",
     mark: <PrimeMark />,
     blurb:
       "PrimeIntellect's RLM agent, with its persistent IPython tool and subagents running on Nebius models. Your own Prime config stays untouched.",
@@ -121,6 +121,14 @@ const stats = [
   { value: "5", label: "coding agents" },
   { value: "1", label: "install command" },
   { value: "0", label: "config files rewritten" },
+];
+
+const modelHighlights = [
+  { name: "Kimi K3", note: "default coding" },
+  { name: "Kimi K2.6", note: "vision" },
+  { name: "DeepSeek V4 Flash", note: "fast 1M context" },
+  { name: "DeepSeek V4 Pro", note: "long-context reasoning" },
+  { name: "Qwen 3.5", note: "flagship" },
 ];
 
 export const Route = createFileRoute("/")({
@@ -245,8 +253,8 @@ function Home() {
           </h1>
           <p className="mx-auto mt-6 mb-9 max-w-[600px] text-pretty text-[18.5px] leading-relaxed text-muted">
             A local relay that points Claude Code, Codex, OpenCode, Pi Code, and Prime Agent at open
-            models on Nebius Token Factory, with short commands and zero edits to your real tool
-            config.
+            models on Nebius Token Factory, including Kimi, Qwen, MiniMax, and DeepSeek V4, with
+            short commands and zero edits to your real tool config.
           </p>
 
           {/* dark install card: the focal surface */}
@@ -327,6 +335,21 @@ function Home() {
               </div>
             ))}
           </div>
+
+          <div className="mx-auto mt-7 max-w-[780px] rounded-2xl border border-line-strong bg-white px-4 py-3 shadow-[0_1px_2px_rgba(10,10,10,.03)]">
+            <div className="flex flex-wrap items-center justify-center gap-2.5">
+              {modelHighlights.map((model) => (
+                <span
+                  key={model.name}
+                  className="inline-flex items-center gap-2 rounded-full bg-code px-3 py-1.5 text-[12.5px] text-muted"
+                >
+                  <span className="font-semibold text-ink">{model.name}</span>
+                  <span className="text-faint">·</span>
+                  <span>{model.note}</span>
+                </span>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* START / HOW IT WORKS */}
@@ -367,18 +390,20 @@ function Home() {
               </h3>
               <p className="mt-4 max-w-[280px] text-[14.5px] leading-relaxed text-white/65">
                 One Nebius Token Factory key powers all five agents through a single local proxy.
-                The model list is pulled live from Nebius, so every model they serve is one command
-                away.
+                The model list is pulled live from Nebius, with bundled fallbacks for new DeepSeek
+                V4 models while regional catalogs catch up.
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
-                {["Kimi K3", "Kimi K2.6", "Qwen 3.5", "DeepSeek V4", "MiniMax M3"].map((m) => (
-                  <span
-                    key={m}
-                    className="rounded-full bg-white/[.08] px-3 py-1.5 font-mono text-[12px] text-white/75 ring-1 ring-white/10"
-                  >
-                    {m}
-                  </span>
-                ))}
+                {["Kimi K3", "Kimi K2.6", "DeepSeek V4 Flash", "DeepSeek V4 Pro", "Qwen 3.5"].map(
+                  (m) => (
+                    <span
+                      key={m}
+                      className="rounded-full bg-white/[.08] px-3 py-1.5 font-mono text-[12px] text-white/75 ring-1 ring-white/10"
+                    >
+                      {m}
+                    </span>
+                  ),
+                )}
               </div>
               <a
                 href={nebiusApiKeysUrl}
@@ -530,7 +555,7 @@ function StatusBadge({ status }: Readonly<{ status: "Stable" | "Beta" }>) {
         className="size-1.5 rounded-full"
         style={{ background: stable ? "#7fae00" : "var(--color-violet)" }}
       />
-      {status === "Stable" ? "100% supported" : "Beta"}
+      {status === "Stable" ? "Supported" : "Beta"}
     </span>
   );
 }

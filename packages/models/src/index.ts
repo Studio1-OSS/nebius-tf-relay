@@ -15,7 +15,9 @@
  * that endpoint does NOT expose or misreports: max-output limits, Claude
  * aliases, and a floor for the placeholder context window Nebius returns for a
  * few flagships (it reports 8000 for GLM-5.2 et al., which is wrong). Modality
- * and pricing are always taken from the API.
+ * and pricing are taken from the API except for explicit bundled fallback rows
+ * that keep newly announced models selectable before every catalog endpoint has
+ * caught up.
  *
  * When the live fetch has not run or fails, everything falls back to
  * CATALOG_SNAPSHOT (a captured copy of the live endpoint), so the tool works
@@ -164,9 +166,18 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
     outputLimit: 65_536,
     order: 40,
   },
+  "deepseek-ai/DeepSeek-V4-Flash": {
+    name: "DeepSeek V4 Flash",
+    anthropicAlias: "nebius-deepseek-v4-flash",
+    outputLimit: 384_000,
+    minContext: 1_048_576,
+    order: 45,
+  },
   "deepseek-ai/DeepSeek-V4-Pro": {
     name: "DeepSeek V4 Pro",
+    anthropicAlias: "nebius-deepseek-v4-pro",
     outputLimit: 384_000,
+    minContext: 1_048_576,
     order: 50,
   },
   "Qwen/Qwen2.5-VL-72B-Instruct": {
@@ -177,6 +188,17 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
     visionRank: 1, // vision fallback
   },
 };
+
+/**
+ * Snapshot rows that remain selectable even when a live/cache catalog fetch
+ * succeeds without them. Keep this tiny and intentional: it is for newly
+ * announced or regional models users need to select before the default catalog
+ * endpoint catches up, not for resurrecting every model Nebius has removed.
+ */
+const BUNDLED_FALLBACK_MODEL_IDS: ReadonlySet<string> = new Set([
+  "deepseek-ai/DeepSeek-V4-Flash",
+  "deepseek-ai/DeepSeek-V4-Pro",
+]);
 
 /**
  * The pinned default model id. Kept stable so both harnesses agree. Kimi-K3
@@ -296,7 +318,15 @@ export type NebiusCatalog = {
  * so a newly added Nebius model appears automatically at the tail.
  */
 export function buildCatalog(apiModels: readonly NebiusApiModel[]): NebiusCatalog {
-  const defs = apiModels
+  const seenIds = new Set(
+    apiModels.filter((m) => m && typeof m.id === "string" && m.id.length > 0).map((m) => m.id),
+  );
+  const bundledFallbackRows = CATALOG_SNAPSHOT.filter(
+    (m) => BUNDLED_FALLBACK_MODEL_IDS.has(m.id) && !seenIds.has(m.id),
+  );
+  const sourceModels = [...apiModels, ...bundledFallbackRows];
+
+  const defs = sourceModels
     .filter((m) => m && typeof m.id === "string" && m.id.length > 0)
     // Chat models only: the output side of the modality must be text. This
     // drops embedding models ("text->embedding") that can't back a coding
@@ -393,6 +423,7 @@ export const KIMI_K2_6: ModelDefinition = fromSnapshot("moonshotai/Kimi-K2.6");
 export const KIMI_K2_7_CODE: ModelDefinition = fromSnapshot("moonshotai/Kimi-K2.7-Code");
 export const MINIMAX_M3: ModelDefinition = fromSnapshot("MiniMaxAI/MiniMax-M3");
 export const QWEN_3_5_397B: ModelDefinition = fromSnapshot("Qwen/Qwen3.5-397B-A17B");
+export const DEEPSEEK_V4_FLASH: ModelDefinition = fromSnapshot("deepseek-ai/DeepSeek-V4-Flash");
 export const DEEPSEEK_V4_PRO: ModelDefinition = fromSnapshot("deepseek-ai/DeepSeek-V4-Pro");
 export const QWEN_2_5_VL_72B: ModelDefinition = fromSnapshot("Qwen/Qwen2.5-VL-72B-Instruct");
 
