@@ -5,6 +5,8 @@ import {
   contextLengthOverflow,
   dropOldestTurns,
   newContextFitState,
+  parseNebiusContextLengthInputTokens,
+  parseNebiusContextLengthMaxTokens,
   stripOldImages,
   trimPayloadMessages,
 } from "../../cli/src/lib/context-fit.js";
@@ -291,5 +293,28 @@ describe("nebius-client context-fit retry", () => {
     );
     expect(response.ok).toBe(true);
     expect(await response.text()).toBe("data: hello\n\n");
+  });
+});
+
+// Kimi/Moonshot phrase context overflow differently from vLLM. Without these
+// patterns the reactive context-fit never learns the real limit, so the turn
+// fails outright instead of self-healing - on our own default model family.
+describe("Kimi/Moonshot context-overflow phrasing", () => {
+  test("parses a parenthetical maximum context length", () => {
+    const msg = "This model's maximum context length (262144) exceeded by the request.";
+    expect(parseNebiusContextLengthMaxTokens(msg)).toBe(262144);
+  });
+
+  test("parses a parenthetical input token count", () => {
+    const msg = "Request rejected: input token count (271234) exceeds the model limit.";
+    expect(parseNebiusContextLengthInputTokens(msg)).toBe(271234);
+  });
+
+  test("still prefers the standard vLLM phrasing when present", () => {
+    const msg =
+      "This model's maximum context length is 262144 tokens. However, you requested " +
+      "270000 tokens (250000 in the messages, 20000 in the completion).";
+    expect(parseNebiusContextLengthMaxTokens(msg)).toBe(262144);
+    expect(parseNebiusContextLengthInputTokens(msg)).toBe(250000);
   });
 });

@@ -52,7 +52,15 @@ export function jsonByteLength(value: unknown): number {
 
 export function parseNebiusContextLengthMaxTokens(message: string): number | undefined {
   const match = message.match(/maximum context length is\s+([\d,_]+)\s+tokens/is);
-  return parseTokenCount(match?.[1]);
+  if (match) {
+    return parseTokenCount(match[1]);
+  }
+  // Some backends (notably the Kimi/Moonshot serving stack) state the ceiling
+  // parenthetically instead: "maximum context length (262144) exceeded".
+  // Without this the reactive context-fit never learns the real limit and the
+  // turn fails outright rather than self-healing.
+  const parentheticalMatch = message.match(/maximum context length\s*\(([\d,_]+)\)/is);
+  return parseTokenCount(parentheticalMatch?.[1]);
 }
 
 export function parseNebiusContextLengthInputTokens(message: string): number | undefined {
@@ -72,6 +80,11 @@ export function parseNebiusContextLengthInputTokens(message: string): number | u
   );
   if (vllmMessagesMatch) {
     return parseTokenCount(vllmMessagesMatch[1]);
+  }
+  // Kimi/Moonshot phrasing: "... input token count (271234) exceeds ...".
+  const countedMatch = message.match(/input token count\s*\(([\d,_]+)\)/is);
+  if (countedMatch) {
+    return parseTokenCount(countedMatch[1]);
   }
   const resolvedInputMatch = message.match(/request resolved to\s+([\d,_]+)\s+input tokens\b/is);
   return parseTokenCount(resolvedInputMatch?.[1]);

@@ -246,7 +246,8 @@ export async function streamAnthropicFromNebius(
       response,
       () => postNebiusStream(payload, options, signal, perf, "upstream_fetch_retry"),
       {
-        isOutputStarted: () => blockManager.hasOutput(),
+        // Reasoning-only output stays replay-safe; see hasActionableOutput().
+        isOutputStarted: () => blockManager.hasActionableOutput(),
         onRetry: ({ attempt, maxRetries, timeoutMs }) =>
           debugLog(options, "retrying nebius stream after idle timeout", {
             attempt,
@@ -419,7 +420,7 @@ async function streamAnthropicNativeToolLoop({
       options,
       initialPayload.max_tokens as number | undefined,
       () => postNebiusStream(currentPayload, options, signal),
-      () => blockManager.hasOutput(),
+      () => blockManager.hasActionableOutput(),
     );
     inputTokens += collected.inputTokens;
     outputTokens += collected.outputTokens;
@@ -788,6 +789,12 @@ class StreamBlockManager {
     | { type: "tool_use"; index: number; id: string; name: string; arguments: string }
     | null = null;
   private blockCount = 0;
+  // Tracks whether anything the client could act on (assistant text or a tool
+  // call) has been emitted, as opposed to reasoning-only output. A stream that
+  // has emitted ONLY reasoning is still safe to retry: Claude Code has not
+  // received user-visible text or executed a tool, so a replay cannot duplicate
+  // output or repeat a side effect. See hasActionableOutput().
+  private actionableOutputStarted = false;
 
   constructor(
     private readonly res: ServerResponse,
@@ -822,6 +829,7 @@ class StreamBlockManager {
     if (!emittedText) {
       return;
     }
+    this.actionableOutputStarted = true;
     if (!this.openBlock || this.openBlock.type !== "text") {
       this.closeOpenBlock();
       this.openBlock = { type: "text", index: this.nextIndex };
@@ -852,6 +860,9 @@ class StreamBlockManager {
     const tcIndex = typeof toolCall.index === "number" ? toolCall.index : 0;
     const name = toolCall.function?.name;
     const argsFragment = this.outputBudget.takeToolJson(toolCall.function?.arguments ?? "");
+    // A tool call is actionable output: replaying after this could re-run a
+    // side effect, so the stream is no longer safe to retry.
+    this.actionableOutputStarted = true;
     // A tool_use block is open and matches this delta when the open block is a
     // tool_use AND its upstream tool-call index equals this delta's index. A new
     // index means a new tool call → start a fresh block. Check the open block's
@@ -903,6 +914,8 @@ class StreamBlockManager {
   }
 
   emitNativeWebSearch(search: ClaudeNativeWebSearchRecord): void {
+    // A server tool ran and its results reached the client - not replay-safe.
+    this.actionableOutputStarted = true;
     this.closeOpenBlock();
     const toolIndex = this.nextIndex;
     writeSse(this.res, "content_block_start", {
@@ -976,6 +989,16 @@ class StreamBlockManager {
 
   hasOutput(): boolean {
     return this.blockCount > 0;
+  }
+
+  /**
+   * Whether output the client could act on (text or a tool call) has been sent.
+   * Reasoning-only output does NOT count, so a stream that stalls after emitting
+   * only reasoning stays safely retryable - which is the common Nebius failure
+   * mode on reasoning models like Kimi K3.
+   */
+  hasActionableOutput(): boolean {
+    return this.actionableOutputStarted;
   }
 
   summary(): string {
