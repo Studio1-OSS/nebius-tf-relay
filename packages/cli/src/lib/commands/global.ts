@@ -30,6 +30,9 @@ Usage:
   nebiusrelay pi [...]          (alias: npi)
   nebiusrelay opencode [...]    (alias: nopencode)
   nebiusrelay prime [...]       (alias: nprime)
+  nebiusrelay hermes [...]      (alias: nhermes; "hermes desktop" for the app)
+  nebiusrelay deepseek [...]    (alpha, alias: ndeepseek)
+  nebiusrelay grok [...]        (alias: ngrok; Grok's UI on Nebius models)
 
 Extra args after codex/claude/pi/opencode/prime are passed through.
 ChatGPT App support is alpha; run \`nebiusrelay chatgpt --restore\` (alias: codex-app) to restore the previous desktop config.

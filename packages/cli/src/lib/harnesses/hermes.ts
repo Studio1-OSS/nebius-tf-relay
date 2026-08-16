@@ -1,0 +1,77 @@
+import { spawn } from "node:child_process";
+import { rmSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { getSelectableModels } from "@nebiusrelay/models";
+import { resolveCodexModel } from "../codex/defaults.js";
+import { HARNESS } from "../harness.js";
+import { defineHarness, type HarnessContext, type HarnessResult } from "../harness-types.js";
+import {
+  buildHermesLaunchSpec,
+  createHermesHomeOverlay,
+  resolveHermesCommand,
+} from "../hermes/core.js";
+import { resolveNebiusApiKey, resolveNebiusBaseUrl } from "../nebius-core.js";
+
+export default defineHarness({
+  id: HARNESS.HERMES,
+  label: "Hermes Agent",
+
+  async run(ctx: HarnessContext): Promise<HarnessResult> {
+    const apiKey = await resolveNebiusApiKey({ apiKey: ctx.apiKey, home: ctx.home });
+    if (!apiKey) {
+      throw new Error("No Nebius API key found. Pass --api-key or set NEBIUS_API_KEY.");
+    }
+
+    const { mode, passthrough } = resolveHermesCommand(ctx.passthrough ?? []);
+    const selectedModel = resolveCodexModel(ctx.main);
+    const baseUrl = resolveNebiusBaseUrl();
+    // Put the selected model first: Hermes uses the first entry as the
+    // provider's default_model.
+    const modelIds = [
+      selectedModel.id,
+      ...getSelectableModels()
+        .map((model) => model.id)
+        .filter((id) => id !== selectedModel.id),
+    ];
+
+    const nativeHome = process.env.HERMES_HOME?.trim() || join(ctx.home || homedir(), ".hermes");
+    const overlay = createHermesHomeOverlay(nativeHome, { apiKey, baseUrl, modelIds });
+    try {
+      const launch = buildHermesLaunchSpec({
+        mode,
+        modelId: selectedModel.id,
+        apiKey,
+        baseUrl,
+        hermesHome: overlay,
+        passthrough,
+      });
+
+      if (process.env.NEBIUSRELAY_DEBUG === "1") {
+        process.stderr.write(`[nebiusrelay hermes] mode: ${mode}\n`);
+        process.stderr.write(`[nebiusrelay hermes] model: ${selectedModel.id}\n`);
+        process.stderr.write(`[nebiusrelay hermes] base URL: ${baseUrl}\n`);
+        process.stderr.write(`[nebiusrelay hermes] home overlay: ${overlay}\n`);
+      }
+
+      process.stderr.write(
+        `Nebius TF Relay ▸ Launching Hermes Agent${mode === "desktop" ? " Desktop" : ""} ` +
+          `with Nebius Token Factory (${selectedModel.definition.name}).\n`,
+      );
+      const child = spawn(launch.binary, launch.args, { env: launch.env, stdio: "inherit" });
+      const result = await new Promise<{ status: number | null; signal: NodeJS.Signals | null }>(
+        (resolve) => {
+          child.on("error", (err) => {
+            process.stderr.write(`Nebius TF Relay ▸ Failed to launch hermes: ${err.message}.\n`);
+            resolve({ status: 1, signal: null });
+          });
+          child.on("exit", (status, signal) => resolve({ status, signal }));
+        },
+      );
+      process.exitCode = typeof result.status === "number" ? result.status : result.signal ? 1 : 0;
+    } finally {
+      rmSync(overlay, { recursive: true, force: true });
+    }
+    return {};
+  },
+});

@@ -186,6 +186,9 @@ const WRAPPER_COMMANDS: ReadonlyArray<{ name: string; harness: string }> = [
   { name: "nopencode", harness: "opencode" },
   { name: "npi", harness: "pi" },
   { name: "nprime", harness: "prime" },
+  { name: "nhermes", harness: "hermes" },
+  { name: "ndeepseek", harness: "deepseek" },
+  { name: "ngrok", harness: "grok" },
 ];
 
 /**

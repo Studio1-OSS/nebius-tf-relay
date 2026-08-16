@@ -51,6 +51,30 @@ const agents: Agent[] = [
       "Starts with a custom Nebius provider and a temporary config directory, while normal local session history keeps persisting.",
   },
   {
+    name: "Hermes Agent",
+    command: "nhermes",
+    status: "Beta",
+    mark: <HermesMark />,
+    blurb:
+      "Nous Research's agent, launched with an isolated home overlay so your sessions and skills stay native while credentials stay ephemeral.",
+  },
+  {
+    name: "DeepSeek Harness",
+    command: "ndeepseek",
+    status: "Beta",
+    mark: <DeepSeekMark />,
+    blurb:
+      "Boots the DeepSeek web profile with Nebius layered in as a provider. Pairs naturally with DeepSeek V4 Pro and Flash.",
+  },
+  {
+    name: "Grok Build",
+    command: "ngrok",
+    status: "Beta",
+    mark: <GrokMark />,
+    blurb:
+      "xAI's terminal harness driving Nebius models. Your key is fenced off from api.x.ai, and the model is told not to claim it is Grok.",
+  },
+  {
     name: "Prime Agent",
     command: "nprime",
     status: "Beta",
@@ -100,8 +124,8 @@ const steps = [
 
 const features = [
   {
-    title: "One relay, five harnesses",
-    body: "Claude Code, Codex, OpenCode, Pi Code, and Prime Agent all run on Nebius open models through a single local install.",
+    title: "One relay, eight harnesses",
+    body: "Claude Code, Codex, OpenCode, Pi Code, Prime Agent, Hermes, DeepSeek Harness, and Grok Build all run on Nebius open models through a single local install.",
   },
   {
     title: "Live web search, built in",
@@ -118,7 +142,7 @@ const features = [
 ];
 
 const stats = [
-  { value: "5", label: "coding agents" },
+  { value: "8", label: "coding agents" },
   { value: "1", label: "install command" },
   { value: "0", label: "config files rewritten" },
 ];
@@ -389,7 +413,7 @@ function Home() {
                 Every agent.
               </h3>
               <p className="mt-4 max-w-[280px] text-[14.5px] leading-relaxed text-white/65">
-                One Nebius Token Factory key powers all five agents through a single local proxy.
+                One Nebius Token Factory key powers all eight agents through a single local proxy.
                 The model list is pulled live from Nebius, with bundled fallbacks for new DeepSeek
                 V4 models while regional catalogs catch up.
               </p>
@@ -657,6 +681,50 @@ function PiMark() {
         d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"
       />
       <path fill="currentColor" d="M517.36 400H634.72V634.72H517.36Z" />
+    </svg>
+  );
+}
+function HermesMark() {
+  // Winged-messenger nod: a circle with an upward chevron.
+  return (
+    <svg className="size-[22px]" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="9.25" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path
+        d="M7.5 14.5 12 8.5l4.5 6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+function DeepSeekMark() {
+  return (
+    <svg className="size-[22px]" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M4 12c4.5-5 11.5-5 16 0-4.5 5-11.5 5-16 0Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="2.4" fill="currentColor" />
+    </svg>
+  );
+}
+function GrokMark() {
+  return (
+    <svg className="size-[22px]" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M5 19 19 5M10.5 5H19v8.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

@@ -64,6 +64,13 @@ nebiusrelay claude [...]       # alias: nclaude  (Claude Code)
 nebiusrelay pi [...]           # alias: npi      (Pi Code)
 nebiusrelay opencode [...]     # alias: nopencode (OpenCode)
 nebiusrelay prime [...]        # alias: nprime   (Prime Agent, PrimeIntellect)
+nebiusrelay hermes [...]       # alias: nhermes  (Hermes Agent, Nous Research; `hermes desktop`)
+nebiusrelay deepseek [...]     # alias: ndeepseek (DeepSeek Harness, alpha)
+nebiusrelay grok [...]         # alias: ngrok    (Grok Build UI on Nebius models)
+
+nebiusrelay usage [--last 7d]  # local spend report by model and tool
+nebiusrelay update             # update to the latest release
+nebiusrelay daemon install|uninstall|status   # daemon auto-start at login
 
 nebiusrelay chatgpt [--model <model>] [--restore]   # alpha: ChatGPT Desktop (alias: codex-app)
 

@@ -1,6 +1,6 @@
 {
   "name": "@nebiusrelay/cli",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "CLI for routing Claude Code, OpenCode, Codex, and Pi Code through Nebius Token Factory",
   "license": "MIT",
   "bin": {
@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.8.2",
-    "@nebiusrelay/models": "workspace:*"
+    "@nebiusrelay/models": "workspace:*",
+    "yaml": "^2.9.0"
   },
   "engines": {
     "node": ">=18"

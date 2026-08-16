@@ -97,7 +97,25 @@ exec bun "$BIN_DIR/nebiusrelay.js" prime "\$@"
 EOF
 chmod +x "$BIN_DIR/nprime"
 
-ok "Wrappers installed: nebiusrelay, nclaude, nopencode, ncodex, npi, nprime → $BIN_DIR"
+cat > "$BIN_DIR/nhermes" <<EOF
+#!/usr/bin/env sh
+exec bun "$BIN_DIR/nebiusrelay.js" hermes "\$@"
+EOF
+chmod +x "$BIN_DIR/nhermes"
+
+cat > "$BIN_DIR/ndeepseek" <<EOF
+#!/usr/bin/env sh
+exec bun "$BIN_DIR/nebiusrelay.js" deepseek "\$@"
+EOF
+chmod +x "$BIN_DIR/ndeepseek"
+
+cat > "$BIN_DIR/ngrok" <<EOF
+#!/usr/bin/env sh
+exec bun "$BIN_DIR/nebiusrelay.js" grok "\$@"
+EOF
+chmod +x "$BIN_DIR/ngrok"
+
+ok "Wrappers installed: nebiusrelay, nclaude, nopencode, ncodex, npi, nprime, nhermes, ndeepseek, ngrok → $BIN_DIR"
 
 # Remove old nebiusrelay-owned wrappers that used the upstream agent names.
 # Current installs must never shadow `claude`, `codex`, or `opencode`; users
@@ -185,6 +203,9 @@ if LINK_DIR="$(find_writable_path_dir)"; then
   install_link ncodex "$BIN_DIR/ncodex"
   install_link npi "$BIN_DIR/npi"
   install_link nprime "$BIN_DIR/nprime"
+  install_link nhermes "$BIN_DIR/nhermes"
+  install_link ndeepseek "$BIN_DIR/ndeepseek"
+  install_link ngrok "$BIN_DIR/ngrok"
   if [ "$links_changed" -gt 0 ]; then
     ok "Linked $links_changed command(s) into current PATH → $LINK_DIR"
   fi
