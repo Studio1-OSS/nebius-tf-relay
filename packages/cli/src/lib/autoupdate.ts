@@ -10,7 +10,7 @@
  * an update problem must never block or crash the user's actual command.
  */
 
-import { readFile, writeFile, rename, stat } from "node:fs/promises";
+import { access, readFile, writeFile, rename, stat } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { VERSION } from "./version.js";
@@ -173,6 +173,75 @@ async function downloadTo(url: string, dest: string): Promise<void> {
  * once/hour, bounded by a 10s overall timeout, and never throws. No-op unless
  * the running script is the installed bundle.
  */
+
+/**
+ * Wrapper commands the installer creates. Auto-update only replaces the bundle,
+ * so a release that ADDS a wrapper (e.g. `nprime` for the Prime Agent harness)
+ * would never reach existing installs - they'd have to re-run install.sh. Back
+ * these in after an update so new harnesses become usable immediately.
+ */
+const WRAPPER_COMMANDS: ReadonlyArray<{ name: string; harness: string }> = [
+  { name: "nclaude", harness: "claude" },
+  { name: "ncodex", harness: "codex" },
+  { name: "nopencode", harness: "opencode" },
+  { name: "npi", harness: "pi" },
+  { name: "nprime", harness: "prime" },
+];
+
+/**
+ * Create any missing wrapper scripts next to the installed bundle. Never
+ * overwrites an existing file - only fills gaps - so a user's customized
+ * wrapper is left alone. Best-effort: failures are swallowed.
+ */
+export async function backfillWrapperCommands(): Promise<string[]> {
+  const created: string[] = [];
+  if (!isInstalledBundle()) {
+    return created;
+  }
+  const binDir = path.dirname(installedBundlePath());
+  const bundle = installedBundlePath();
+  for (const { name, harness } of WRAPPER_COMMANDS) {
+    const target = path.join(binDir, name);
+    try {
+      await access(target);
+      continue; // already present
+    } catch {
+      // missing - create it below
+    }
+    try {
+      await writeFile(target, `#!/usr/bin/env sh\nexec bun "${bundle}" ${harness} "$@"\n`, {
+        encoding: "utf8",
+        mode: 0o755,
+      });
+      created.push(name);
+    } catch {
+      // best-effort: a read-only bin dir must not break the update
+    }
+  }
+  return created;
+}
+
+/** Force an update now, ignoring the throttle. Returns a human-readable result. */
+export async function runUpdateCommand(): Promise<string> {
+  if (!isInstalledBundle()) {
+    return (
+      "Not an installed bundle - this is a dev/source run, so there is nothing to update.\n" +
+      "Install with: curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh"
+    );
+  }
+  const manifest = await withTimeout(fetchManifest(), OVERALL_TIMEOUT_MS);
+  const created = await backfillWrapperCommands();
+  const wrapperNote = created.length > 0 ? `\nAdded missing command(s): ${created.join(", ")}` : "";
+  if (!isNewer(manifest.version, VERSION)) {
+    return `Already up to date (v${VERSION}).${wrapperNote}`;
+  }
+  const dest = installedBundlePath();
+  const url = manifest.url ?? `${UPDATE_ORIGIN}/nebiusrelay.js`;
+  await downloadTo(url, dest);
+  await touchThrottle();
+  return `Updated v${VERSION} -> v${manifest.version}. The next run uses it.${wrapperNote}`;
+}
+
 export async function maybeSelfUpdate(): Promise<void> {
   // Only the installed bundle self-updates, and only against the deployed
   // release site the bundle was installed from - so this is a safe default-on:
@@ -197,7 +266,13 @@ export async function maybeSelfUpdate(): Promise<void> {
     const dest = installedBundlePath();
     const url = manifest.url ?? `${UPDATE_ORIGIN}/nebiusrelay.js`;
     await downloadTo(url, dest);
-    process.stderr.write(`nebiusrelay: updated to v${manifest.version} (next run uses it)\n`);
+    // A new release may add wrapper commands; create any that are missing so
+    // existing installs pick up new harnesses without reinstalling.
+    const created = await backfillWrapperCommands();
+    const suffix = created.length > 0 ? ` (+ ${created.join(", ")})` : "";
+    process.stderr.write(
+      `nebiusrelay: updated to v${manifest.version}${suffix} (next run uses it)\n`,
+    );
   } catch {
     // Swallowed: update failure never breaks the user's command.
   }

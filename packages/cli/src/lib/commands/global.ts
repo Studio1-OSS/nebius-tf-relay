@@ -17,7 +17,13 @@ export function printHelp() {
 
 Usage:
   nebiusrelay configure
+  nebiusrelay update            update to the latest release
   nebiusrelay whoami
+  nebiusrelay usage [--last 7d] tracked local spend by model and tool
+  nebiusrelay daemon install    start the daemon at login (macOS/Linux)
+  nebiusrelay daemon uninstall  stop starting the daemon at login
+  nebiusrelay daemon status     show auto-start service status
+  nebiusrelay daemon stop       stop the running daemon
   nebiusrelay chatgpt [--model <model>] [--restore]  (alpha)
   nebiusrelay codex [...]       (alias: ncodex)
   nebiusrelay claude [...]      (alias: nclaude)

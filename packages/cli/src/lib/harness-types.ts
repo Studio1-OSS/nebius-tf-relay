@@ -5,6 +5,8 @@ export type HarnessContext = {
   apiKey?: string;
   apiKeyFromFlag?: boolean;
   main?: string;
+  /** `--last <window>` for the usage report, e.g. "7d". */
+  last?: string;
   passthrough?: string[];
   json?: boolean;
   restore?: boolean;

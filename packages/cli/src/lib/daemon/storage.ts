@@ -37,9 +37,26 @@ export type SessionPersistInput = RegisterSessionRequest & {
   externalSummary?: string;
 };
 
+/**
+ * One completed session's tracked spend, for the local `usage` report. Read
+ * straight from the session store - nothing leaves the machine.
+ */
+export type TrackedUsageSession = {
+  agent: string;
+  modelId: string | null;
+  modelName: string | null;
+  promptTokens: number;
+  cachedTokens: number;
+  completionTokens: number;
+  costUsd: number;
+  endedAt: number;
+};
+
 export type SessionStore = {
   kind: "sqlite" | "memory";
   restoreActiveSessions(): StoredSession[];
+  /** Completed sessions that ended at or after `since` (epoch ms), newest first. */
+  queryUsageSince(since: number): TrackedUsageSession[];
   upsertSession(session: SessionPersistInput): void;
   markSessionEnded(
     token: string,
@@ -153,6 +170,15 @@ class ResilientSessionStore implements SessionStore {
     this.kind = inner.kind;
   }
 
+  queryUsageSince(since: number): TrackedUsageSession[] {
+    try {
+      return this.inner.queryUsageSince(since);
+    } catch (err) {
+      warnStoreError("query usage", err);
+      return [];
+    }
+  }
+
   restoreActiveSessions(): StoredSession[] {
     try {
       return this.inner.restoreActiveSessions();
@@ -225,6 +251,26 @@ class SqliteSessionStore implements SessionStore {
 
   constructor(private readonly db: SqliteDatabase) {
     this.migrate();
+  }
+
+  queryUsageSince(since: number): TrackedUsageSession[] {
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM sessions
+         WHERE ended_at IS NOT NULL AND ended_at >= ?
+         ORDER BY ended_at DESC`,
+      )
+      .all(since) as SessionRow[];
+    return rows.map((row) => ({
+      agent: row.agent,
+      modelId: row.model_id,
+      modelName: row.model_name,
+      promptTokens: row.prompt_tokens,
+      cachedTokens: row.cached_tokens,
+      completionTokens: row.completion_tokens,
+      costUsd: row.cost_usd,
+      endedAt: row.ended_at ?? 0,
+    }));
   }
 
   restoreActiveSessions(): StoredSession[] {
@@ -404,6 +450,12 @@ class MemorySessionStore implements SessionStore {
   readonly kind = "memory";
 
   restoreActiveSessions(): StoredSession[] {
+    return [];
+  }
+
+  // The memory store is the no-sqlite fallback: it persists nothing, so there
+  // is no usage history to report.
+  queryUsageSince(): TrackedUsageSession[] {
     return [];
   }
 

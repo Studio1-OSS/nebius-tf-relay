@@ -4,6 +4,8 @@ import { loadEnvFile } from "../lib/load-env.js";
 import { parseArgs } from "../lib/parse-args.js";
 import { printHelp, runConfigure } from "../lib/commands/global.js";
 import { dispatchHarnessCommand } from "../lib/commands/harness.js";
+import { detectInstalledHarness } from "../lib/detect.js";
+import type { HarnessId } from "../lib/harness.js";
 import { isHarnessCommand, resolveHarnessInvocation } from "../lib/commands/harness-invocation.js";
 import {
   readGlobalConfig,
@@ -111,14 +113,7 @@ async function runInteractiveLauncher(): Promise<void> {
   const clack = await import("@clack/prompts");
   const choice = await clack.select({
     message: "What do you want to run?",
-    options: [
-      { value: "codex", label: "Codex", hint: "ncodex" },
-      { value: "claude", label: "Claude Code", hint: "nclaude" },
-      { value: "pi", label: "Pi Code", hint: "npi" },
-      { value: "opencode", label: "OpenCode", hint: "nopencode" },
-      { value: "chatgpt", label: "ChatGPT Desktop", hint: "chatgpt" },
-      { value: "configure", label: "Configure", hint: "API keys and detected tools" },
-    ],
+    options: launcherOptions(),
   });
   if (clack.isCancel(choice)) {
     clack.cancel("Cancelled.");
@@ -143,6 +138,34 @@ async function runInteractiveLauncher(): Promise<void> {
   }
 
   await dispatchHarnessCommand(choice, undefined, {});
+}
+
+/**
+ * Launcher entries, with tools you actually have installed listed first - an
+ * install-ordered menu beats a fixed one when only some harnesses are present.
+ */
+function launcherOptions(): Array<{ value: string; label: string; hint: string }> {
+  const harnesses = [
+    { value: "codex", label: "Codex", hint: "ncodex" },
+    { value: "claude", label: "Claude Code", hint: "nclaude" },
+    { value: "pi", label: "Pi Code", hint: "npi" },
+    { value: "opencode", label: "OpenCode", hint: "nopencode" },
+    { value: "prime", label: "Prime Agent", hint: "nprime" },
+  ];
+  const installed: typeof harnesses = [];
+  const missing: typeof harnesses = [];
+  for (const entry of harnesses) {
+    const detected = detectInstalledHarness(entry.value as HarnessId).installed;
+    (detected ? installed : missing).push(
+      detected ? entry : { ...entry, hint: `${entry.hint} (not installed)` },
+    );
+  }
+  return [
+    ...installed,
+    ...missing,
+    { value: "chatgpt", label: "ChatGPT Desktop", hint: "chatgpt" },
+    { value: "configure", label: "Configure", hint: "API keys and detected tools" },
+  ];
 }
 
 function isInteractive(): boolean {
@@ -195,8 +218,31 @@ async function main() {
     return;
   }
 
+  if (command === "update") {
+    const { runUpdateCommand } = await import("../lib/autoupdate.js");
+    process.stdout.write(`${await runUpdateCommand()}\n`);
+    return;
+  }
+
   if (command === "whoami") {
     process.stdout.write(`${await getInstallId()}\n`);
+    return;
+  }
+
+  // Local spend report. Reads only the session store this machine already
+  // writes; nothing is uploaded.
+  if (command === "usage") {
+    const { buildUsageReport, formatUsageReport, parseUsageWindowMs } =
+      await import("../lib/usage-report.js");
+    const requested = parsed.flags.last;
+    const windowMs = parseUsageWindowMs(requested ?? "7d");
+    if (windowMs === undefined) {
+      throw new Error(
+        `Invalid --last value "${requested}". Use a window like 30m, 24h, 7d, or 4w.`,
+      );
+    }
+    const summary = await buildUsageReport(windowMs);
+    process.stdout.write(`${formatUsageReport(summary, requested ?? "7d")}\n`);
     return;
   }
 
@@ -229,8 +275,9 @@ async function main() {
   // reaches here.
   if (command === "daemon") {
     const verb = rawVerb;
+    const expected = "stop, install, uninstall, status";
     if (verb === undefined) {
-      throw new Error('Unknown "daemon" command. Expected: stop.');
+      throw new Error(`Unknown "daemon" command. Expected: ${expected}.`);
     }
     if (verb === "stop") {
       await daemonStop();
@@ -241,7 +288,28 @@ async function main() {
       await runDaemon();
       return;
     }
-    throw new Error(`Unknown "daemon ${verb}" command. Expected: stop.`);
+    // Auto-start at login (launchd on macOS, systemd --user on Linux). Keeps a
+    // current daemon always available instead of one left over from an older
+    // release, and removes the cold start on the first turn of the day.
+    if (verb === "install" || verb === "uninstall" || verb === "status") {
+      const { installAutoStart, uninstallAutoStart, autoStartStatus } =
+        await import("../lib/daemon/auto-start.js");
+      if (verb === "install") {
+        process.stdout.write(`${await installAutoStart()}\n`);
+        return;
+      }
+      if (verb === "uninstall") {
+        process.stdout.write(`${await uninstallAutoStart()}\n`);
+        return;
+      }
+      const status = await autoStartStatus();
+      process.stdout.write(`${status.detail}\n`);
+      if (status.servicePath) {
+        process.stdout.write(`  Service: ${status.servicePath}\n`);
+      }
+      return;
+    }
+    throw new Error(`Unknown "daemon ${verb}" command. Expected: ${expected}.`);
   }
 
   if (command === "codex-app") {
