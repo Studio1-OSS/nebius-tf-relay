@@ -7,9 +7,13 @@ import { readJsonBodyWithSize, requestPath, writeJson } from "../http-util.js";
 import { writeProxyDebugLog } from "../proxy-debug.js";
 import { recordAgentModel } from "../model-preferences.js";
 import {
+  CODEX_MODELS_PATH,
   compactionResponse,
   compactionSummary,
   isCodexCompactionRequest,
+  isCodexCompactPath,
+  isCodexResponsesPath,
+  normalizeCodexPath,
   toCompactionPayload,
 } from "./compaction.js";
 import { objectKeys } from "./content-format.js";
@@ -60,12 +64,12 @@ export async function handleCodexProxyRequest(
     return;
   }
 
-  if (req.method === "GET" && path === "/v1/models") {
+  if (req.method === "GET" && normalizeCodexPath(path) === CODEX_MODELS_PATH) {
     writeJson(res, 200, codexModelCatalog());
     return;
   }
 
-  if (req.method !== "POST" || path !== "/v1/responses") {
+  if (req.method !== "POST" || !isCodexResponsesPath(path)) {
     writeOpenAIError(
       res,
       404,
@@ -139,7 +143,7 @@ export async function handleCodexProxyRequest(
   // not continue it. Handle it before the normal turn paths - forwarding it as
   // an ordinary request would send the whole history plus every tool schema and
   // return an answer Codex cannot use as a checkpoint.
-  if (isCodexCompactionRequest(body)) {
+  if (isCodexCompactionRequest(body) || isCodexCompactPath(path)) {
     const compactionPayload = toCompactionPayload(translatedPayload, requestModel.definition);
     debugLog(options, "codex compaction request", {
       targetModel: requestModel.targetModelId,

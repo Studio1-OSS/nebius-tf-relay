@@ -7,6 +7,9 @@ import {
   decodeCompactionSummary,
   encodeCompactionSummary,
   isCodexCompactionRequest,
+  isCodexCompactPath,
+  isCodexResponsesPath,
+  normalizeCodexPath,
   normalizeCompactionInput,
   toCompactionPayload,
 } from "../../cli/src/lib/codex/compaction.js";
@@ -127,5 +130,40 @@ describe("Codex compaction summary extraction", () => {
       compactionSummary({ choices: [{ message: { content: "", reasoning_content: "fallback" } }] }),
     ).toBe("fallback");
     expect(compactionSummary({ choices: [] })).toBe("");
+  });
+});
+
+// Codex clients differ on the /v1 prefix; a valid request must never 404.
+describe("Codex route normalization", () => {
+  test("un-prefixed paths alias to their /v1 form", () => {
+    expect(normalizeCodexPath("/responses")).toBe("/v1/responses");
+    expect(normalizeCodexPath("/models")).toBe("/v1/models");
+    expect(normalizeCodexPath("/responses/compact")).toBe("/v1/responses/compact");
+  });
+
+  test("already-prefixed paths are unchanged", () => {
+    expect(normalizeCodexPath("/v1/responses")).toBe("/v1/responses");
+  });
+
+  test("unrelated paths are untouched (still 404 material)", () => {
+    expect(normalizeCodexPath("/healthz")).toBe("/healthz");
+    expect(isCodexResponsesPath("/healthz")).toBe(false);
+  });
+
+  test("both turn and compact endpoints are accepted, prefixed or not", () => {
+    for (const p of [
+      "/v1/responses",
+      "/responses",
+      "/v1/responses/compact",
+      "/responses/compact",
+    ]) {
+      expect(isCodexResponsesPath(p)).toBe(true);
+    }
+  });
+
+  test("only the compact endpoint counts as a compaction path", () => {
+    expect(isCodexCompactPath("/v1/responses/compact")).toBe(true);
+    expect(isCodexCompactPath("/responses/compact")).toBe(true);
+    expect(isCodexCompactPath("/v1/responses")).toBe(false);
   });
 });

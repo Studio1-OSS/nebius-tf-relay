@@ -145,3 +145,30 @@ export function compactionResponse(summary: string, model: string): Record<strin
     usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 },
   };
 }
+
+/**
+ * Codex clients are inconsistent about the `/v1` prefix: the CLI is configured
+ * with a base URL that already ends in `/v1` and appends `/responses`, while
+ * some clients (notably ChatGPT Desktop) send the bare path. Treat the
+ * un-prefixed forms as aliases so a valid request is never answered with a 404.
+ */
+const CODEX_V1_ALIAS_PATHS = new Set(["/models", "/responses", "/responses/compact"]);
+
+export const CODEX_RESPONSES_PATH = "/v1/responses";
+export const CODEX_COMPACT_PATH = "/v1/responses/compact";
+export const CODEX_MODELS_PATH = "/v1/models";
+
+export function normalizeCodexPath(path: string): string {
+  return CODEX_V1_ALIAS_PATHS.has(path) ? `/v1${path}` : path;
+}
+
+/** Both the turn endpoint and the dedicated compaction endpoint. */
+export function isCodexResponsesPath(path: string): boolean {
+  const normalized = normalizeCodexPath(path);
+  return normalized === CODEX_RESPONSES_PATH || normalized === CODEX_COMPACT_PATH;
+}
+
+/** True for the dedicated compaction endpoint (as opposed to a trigger item). */
+export function isCodexCompactPath(path: string): boolean {
+  return normalizeCodexPath(path) === CODEX_COMPACT_PATH;
+}
