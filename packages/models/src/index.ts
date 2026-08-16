@@ -145,7 +145,10 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
     name: "Kimi K3 · default",
     anthropicAlias: "nebius-kimi-k3",
     outputLimit: 131_072,
-    minContext: 262_144, // API reports a placeholder 8000 (real model is ~1M)
+    // Nebius reports a placeholder 8000. Kimi K3's real window is 1M tokens
+    // (Moonshot's model card and upstream both use 1,048,576); we previously
+    // floored it at 262144, which made every harness compact ~4x too early.
+    minContext: 1_048_576,
     order: 0, // the default model
   },
   "moonshotai/Kimi-K2.7-Code": {

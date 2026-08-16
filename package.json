@@ -1,6 +1,6 @@
 {
   "name": "nebiusrelay",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "private": true,
   "description": "Use Nebius Token Factory models in Claude Code, OpenCode, Codex, Pi Code, and Prime Agent",
   "license": "MIT",

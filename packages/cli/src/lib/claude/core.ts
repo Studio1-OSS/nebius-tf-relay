@@ -33,6 +33,9 @@ const CONFLICTING_ENV_KEYS = [
 // the full budget requested by Claude Code.
 const DEFAULT_CLAUDE_CODE_MAX_OUTPUT_TOKENS = 32_000;
 
+/** At or above this context window, Claude Code needs the `[1m]` client hint. */
+const CLAUDE_EXTENDED_CONTEXT_TOKENS = 1_000_000;
+
 export type ClaudeLaunchOptions = {
   apiKey: string;
   baseUrl: string;
@@ -67,13 +70,21 @@ export function buildClaudeEnv({
   // local daemon without entering that custom-key flow.
   env.ANTHROPIC_AUTH_TOKEN = authToken;
   env.CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY = "1";
-  env.ANTHROPIC_MODEL = modelId;
+  // Carries the `[1m]` client hint for 1M-context models (see claudeCodeModelId).
+  env.ANTHROPIC_MODEL = claudeCodeModelId(resolveClaudeModel(modelId));
   // Claude Code disables tool search automatically when ANTHROPIC_BASE_URL is
   // customized unless the feature is explicitly enabled. nebiusrelay forwards
   // the required tool_reference blocks, so opt in by default. Preserve
   // true/false/auto:N overrides from the user.
   if (!env.ENABLE_TOOL_SEARCH?.trim()) {
     env.ENABLE_TOOL_SEARCH = "true";
+  }
+  // Use Claude Code's concise system prompt for gateway models. This is a
+  // straight input-token saving on every single turn (the verbose prompt is
+  // several thousand tokens), which matters because Nebius bills full price for
+  // the repeated prefix - it has no prompt caching. Respect an explicit "0".
+  if (!env.CLAUDE_CODE_SIMPLE_SYSTEM_PROMPT?.trim()) {
+    env.CLAUDE_CODE_SIMPLE_SYSTEM_PROMPT = "1";
   }
   if (env.CLAUDE_CODE_MAX_OUTPUT_TOKENS === undefined) {
     env.CLAUDE_CODE_MAX_OUTPUT_TOKENS = String(DEFAULT_CLAUDE_CODE_MAX_OUTPUT_TOKENS);
@@ -131,10 +142,23 @@ function setTierModelEnv(
   model: ClaudeModelSelection,
 ): void {
   const prefix = `ANTHROPIC_DEFAULT_${tier}_MODEL`;
-  env[prefix] = model.alias;
+  env[prefix] = claudeCodeModelId(model);
   env[`${prefix}_NAME`] = model.definition.name;
   env[`${prefix}_DESCRIPTION`] =
     `Nebius Token Factory (${model.definition.name}) via nebiusrelay - not Anthropic`;
+}
+
+/**
+ * Claude Code does not derive its local context budget from gateway model
+ * metadata - it recognizes a `[1m]` suffix on the model id as a client hint,
+ * then strips that suffix before sending the id to our proxy (so no proxy-side
+ * handling is needed). Without it, a 1M-context model like Kimi K3 is still
+ * budgeted as ~200K locally and Claude Code compacts far too early.
+ */
+function claudeCodeModelId(model: ClaudeModelSelection): string {
+  return model.definition.limit.context >= CLAUDE_EXTENDED_CONTEXT_TOKENS
+    ? `${model.alias}[1m]`
+    : model.alias;
 }
 
 export async function runClaudeNebius(options: ClaudeLaunchOptions): Promise<ClaudeLaunchResult> {

@@ -104,3 +104,63 @@ describe("daemon error rendering (#2 - error contract at the seam)", () => {
     expect(parsed.error.message).toBe("a bare string");
   });
 });
+
+// Regression: an error that arrives AFTER a streaming response has already sent
+// headers must not attempt a second response. writeHead() throws
+// ERR_HTTP_HEADERS_SENT there, and because this runs in the daemon's request
+// catch-all the throw was uncaught - it crashed the daemon process and killed
+// every other active session with it.
+describe("renderDaemonError after headers are sent", () => {
+  function streamingRes(writableEnded = false): {
+    res: ServerResponse;
+    writeHeadCalls: number;
+    ended: boolean;
+  } {
+    const state = { writeHeadCalls: 0, ended: false };
+    const res = {
+      headersSent: true,
+      writableEnded,
+      writeHead: () => {
+        state.writeHeadCalls += 1;
+        throw new Error("ERR_HTTP_HEADERS_SENT");
+      },
+      end: () => {
+        state.ended = true;
+      },
+      setHeader: () => {},
+    } as unknown as ServerResponse;
+    return {
+      res,
+      get writeHeadCalls() {
+        return state.writeHeadCalls;
+      },
+      get ended() {
+        return state.ended;
+      },
+    };
+  }
+
+  for (const agent of ["claude", "codex", "codex-app", undefined] as const) {
+    test(`does not throw or re-write for agent=${agent ?? "undefined"}`, () => {
+      const m = streamingRes();
+      expect(() => renderDaemonError(m.res, new Error("mid-stream boom"), agent)).not.toThrow();
+      expect(m.writeHeadCalls).toBe(0);
+      // The half-open connection is closed so the client is not left hanging.
+      expect(m.ended).toBe(true);
+    });
+  }
+
+  test("does not double-end a response that already finished", () => {
+    const m = streamingRes(true);
+    expect(() => renderDaemonError(m.res, new Error("boom"), "claude")).not.toThrow();
+    expect(m.ended).toBe(false);
+  });
+
+  test("Nebius API errors after headers are sent are also swallowed", () => {
+    const m = streamingRes();
+    expect(() =>
+      renderDaemonError(m.res, anthropicError(429, "rate_limit_error", "slow down"), "claude"),
+    ).not.toThrow();
+    expect(m.writeHeadCalls).toBe(0);
+  });
+});

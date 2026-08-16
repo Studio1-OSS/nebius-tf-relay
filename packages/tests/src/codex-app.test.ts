@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { getDefaultModel } from "@nebiusrelay/models";
 import { buildCodexAppConfig, codexAppModelCatalogJson } from "../../cli/src/lib/codex-app.js";
 
 describe("Codex App alpha config", () => {
@@ -158,10 +159,14 @@ describe("Codex App alpha config", () => {
     expect(first?.use_responses_lite).toBe(false);
     expect(first?.apply_patch_tool_type).toBe("freeform");
     expect(first?.web_search_tool_type).toBe("text_and_image");
-    // Truncation limit is the context window divided by the Codex↔Nebius
-    // tokenizer-mismatch ratio (floor(262144 / 1.8)), so Codex compacts before
-    // Nebius's server-side tokenizer rejects. See codex/catalog.ts.
-    expect(first?.truncation_policy).toEqual({ mode: "tokens", limit: 145635 });
+    // Truncation limit is the default model's context window divided by the
+    // Codex<->Nebius tokenizer-mismatch ratio (1.8), so Codex compacts before
+    // Nebius's server-side tokenizer rejects. Derived, not hardcoded, so it
+    // tracks the default model. See codex/catalog.ts.
+    expect(first?.truncation_policy).toEqual({
+      mode: "tokens",
+      limit: Math.floor(getDefaultModel().limit.context / 1.8),
+    });
     expect(first?.comp_hash).toBeNull();
     // model_messages MUST be an object (not null) so Codex Desktop can resolve
     // the requested personality instead of warning and falling back.

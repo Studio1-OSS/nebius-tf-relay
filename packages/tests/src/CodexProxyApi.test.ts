@@ -1,7 +1,13 @@
 import http from "node:http";
 import { asRecord } from "./json-lines.js";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { GLM_5_2, MINIMAX_M3, QWEN_2_5_VL_72B, QWEN_3_5_397B } from "@nebiusrelay/models";
+import {
+  getDefaultModel,
+  GLM_5_2,
+  MINIMAX_M3,
+  QWEN_2_5_VL_72B,
+  QWEN_3_5_397B,
+} from "@nebiusrelay/models";
 import { handleCodexProxyRequest, type CodexProxyOptions } from "../../cli/src/lib/codex/proxy.js";
 
 const realFetch = globalThis.fetch.bind(globalThis);
@@ -571,7 +577,10 @@ describe("Codex Responses proxy tool compatibility", () => {
     );
     expect(first?.apply_patch_tool_type).toBe("freeform");
     expect(first?.web_search_tool_type).toBe("text_and_image");
-    const expectedLimit = Math.floor(GLM_5_2.limit.context / 1.8);
+    // Derive from the catalog's default model (the first catalog entry), not a
+    // hardcoded model - otherwise this silently goes stale whenever the default
+    // or its context window changes.
+    const expectedLimit = Math.floor(getDefaultModel().limit.context / 1.8);
     expect(first?.truncation_policy).toEqual({
       mode: "tokens",
       limit: expectedLimit,

@@ -35,6 +35,17 @@ export async function readJsonBody(req: IncomingMessage): Promise<unknown> {
 }
 
 export function writeJson(res: ServerResponse, status: number, value: unknown): void {
+  // Never write a second response on a connection that already streamed. Once
+  // SSE headers are out, writeHead throws ERR_HTTP_HEADERS_SENT - uncaught in
+  // the daemon's request catch-all, that used to crash the whole process and
+  // take every other active session down with it. Guarding the single lowest
+  // level covers all writeJson/writeAnthropicError/writeOpenAIError callers.
+  if (res.headersSent) {
+    if (!res.writableEnded) {
+      res.end();
+    }
+    return;
+  }
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(value));
 }

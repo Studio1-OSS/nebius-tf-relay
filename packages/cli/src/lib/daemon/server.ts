@@ -131,6 +131,18 @@ export function renderDaemonError(
   err: unknown,
   agent: string | undefined,
 ): void {
+  // A streaming response (Claude/Codex SSE) may already have sent headers before
+  // this error hit. The client holds a partial response on that connection, so a
+  // fresh error body cannot be written on top of it - attempting it throws
+  // ERR_HTTP_HEADERS_SENT, which is UNCAUGHT here and used to take down the whole
+  // daemon process, killing every other active session with it. Just close the
+  // connection and let the per-stream error handling surface the failure.
+  if (res.headersSent) {
+    if (!res.writableEnded) {
+      res.end();
+    }
+    return;
+  }
   if (agent === "codex" || agent === "codex-app") {
     if (isNebiusApiError(err)) {
       writeOpenAIError(res, err.anthropicStatus, err.anthropicType, err.message);
@@ -173,6 +185,15 @@ export async function runDaemon(options: DaemonOptions = {}): Promise<void> {
       renderDaemonError(res, err, requestAgent);
     });
   });
+
+  // Node's default requestTimeout (5 min) kills the socket outright once a
+  // client is slow sending a large request body - e.g. a Codex turn carrying a
+  // multi-million-token context. Our own upstream deadlines (the Nebius
+  // response-header timeout and the SSE idle watchdog) are the real limits; the
+  // server must not impose a second, shorter one. headersTimeout stays finite so
+  // a connection that never sends headers is still reaped.
+  server.requestTimeout = 0;
+  server.headersTimeout = 65_000;
 
   await listenOrExitOnRace(server, port);
 
