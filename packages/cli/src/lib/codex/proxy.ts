@@ -6,6 +6,12 @@ import { createProxyPerfTracer, type ProxyPerfSink } from "../proxy-perf.js";
 import { readJsonBodyWithSize, requestPath, writeJson } from "../http-util.js";
 import { writeProxyDebugLog } from "../proxy-debug.js";
 import { recordAgentModel } from "../model-preferences.js";
+import {
+  compactionResponse,
+  compactionSummary,
+  isCodexCompactionRequest,
+  toCompactionPayload,
+} from "./compaction.js";
 import { objectKeys } from "./content-format.js";
 import {
   resolveCodexRequestModel,
@@ -128,6 +134,39 @@ export async function handleCodexProxyRequest(
     nativeToolCount,
     tools: summarizeResponsesTools(body.tools),
   }));
+
+  // Compaction checkpoint: Codex is asking us to summarize the conversation,
+  // not continue it. Handle it before the normal turn paths - forwarding it as
+  // an ordinary request would send the whole history plus every tool schema and
+  // return an answer Codex cannot use as a checkpoint.
+  if (isCodexCompactionRequest(body)) {
+    const compactionPayload = toCompactionPayload(translatedPayload, requestModel.definition);
+    debugLog(options, "codex compaction request", {
+      targetModel: requestModel.targetModelId,
+      maxTokens: compactionPayload.max_tokens,
+    });
+    // Empty nativeTools short-circuits the native-tool loop to a single plain
+    // call - correct here, since a compaction summary must not invoke tools.
+    const compactionChat = await perf.span("compaction_fetch", () =>
+      callNebiusWithNativeTools(
+        compactionPayload,
+        { ...toolTranslation, nativeTools: [] },
+        options,
+        requestModel.definition,
+        upstreamAbort.signal,
+      ),
+    );
+    recordUsage(compactionChat.usage, options, requestModel.definition);
+    const summary = compactionSummary(compactionChat);
+    if (!summary) {
+      writeOpenAIError(res, 502, "api_error", "Compaction produced an empty summary.");
+      perf.end({ status: res.statusCode, stream: false });
+      return;
+    }
+    writeJson(res, 200, compactionResponse(summary, body.model ?? options.modelId));
+    perf.end({ status: res.statusCode, stream: false });
+    return;
+  }
 
   if (body.stream) {
     await perf.span(

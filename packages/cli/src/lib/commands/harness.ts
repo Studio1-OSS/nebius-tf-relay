@@ -25,7 +25,12 @@ export async function dispatchHarnessCommand(
     throw new Error(`Unknown command "${harnessName} ${verb}". Expected: run.`);
   }
   if (!detectInstalledHarness(harnessName).installed) {
-    throw new Error(missingHarnessMessage(harnessName));
+    // Offer to run the vendor install command rather than only printing it.
+    // Declines (and non-interactive runs) fall through to the usual message.
+    const { ensureHarnessInstalled } = await import("../install-harness.js");
+    if (!(await ensureHarnessInstalled(harnessName))) {
+      throw new Error(missingHarnessMessage(harnessName));
+    }
   }
 
   const ctx = { home: os.homedir(), ...flags };

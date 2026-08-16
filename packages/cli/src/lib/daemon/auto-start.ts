@@ -179,6 +179,11 @@ export async function installAutoStart(): Promise<string> {
     );
   }
   await mkdir(path.join(nebiusrelayHome(), "logs"), { recursive: true });
+  // Hand the fixed proxy port over from any daemon started the old way (a
+  // detached process from a plain launch). Without this the supervised service
+  // starts, finds the port taken, and exits - repeatedly - so auto-start would
+  // silently never work.
+  await stopUnsupervisedDaemon();
 
   if (platform === "launchd") {
     const target = plistPath();
@@ -285,4 +290,42 @@ export async function autoStartStatus(): Promise<AutoStartStatus> {
         : "Auto-start is installed but the service is not currently running (systemd)."
       : "Auto-start is not installed. Run `nebiusrelay daemon install`.",
   };
+}
+
+/**
+ * Stop a daemon that is holding the proxy port but is not the supervised
+ * service, so launchd/systemd can take ownership. Best-effort and safe to call
+ * when nothing is running: a missing pid file or dead process is a no-op.
+ */
+async function stopUnsupervisedDaemon(): Promise<void> {
+  const { daemonPidPath, resolveDaemonPort, probeHealthz } = await import("./server.js");
+  const { readFile, unlink } = await import("node:fs/promises");
+  const port = resolveDaemonPort();
+  if (!(await probeHealthz(port))) {
+    return; // nothing listening - nothing to hand over
+  }
+  let pid: number | undefined;
+  try {
+    const raw = (await readFile(daemonPidPath(), "utf8")).trim();
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    pid = Number.isFinite(parsed) ? parsed : undefined;
+  } catch {
+    return; // healthy but unknown owner - leave it alone rather than guess
+  }
+  if (pid === undefined) {
+    return;
+  }
+  try {
+    process.kill(pid, "SIGTERM");
+  } catch {
+    return; // already gone
+  }
+  // Give it a moment to release the port before the service tries to bind.
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    if (!(await probeHealthz(port))) {
+      break;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  await unlink(daemonPidPath()).catch(() => undefined);
 }

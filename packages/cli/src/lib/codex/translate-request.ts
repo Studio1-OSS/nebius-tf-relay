@@ -6,6 +6,7 @@ import {
   type ModelDefinition,
 } from "@nebiusrelay/models";
 import { writeProxyDebugLog } from "../proxy-debug.js";
+import { normalizeCompactionInput } from "./compaction.js";
 import {
   nativeToolMaxUses as sharedNativeToolMaxUses,
   runWebSearch as runSharedWebSearch,
@@ -160,7 +161,10 @@ function toChatMessages(
       ...(reasoning ? { reasoning_content: reasoning } : {}),
     });
   };
-  for (const item of body.input ?? []) {
+  // Replay compaction checkpoints as readable text. A `compaction` item carries
+  // the summary in encrypted_content; left as-is the model would see an opaque
+  // blob and lose everything the checkpoint was meant to preserve.
+  for (const item of normalizeCompactionInput(body.input ?? [])) {
     if (item.type === "reasoning") {
       const reasoning = stringifyResponsesContent(item.content);
       if (reasoning) {
