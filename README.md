@@ -125,7 +125,6 @@ Claude Code and Codex expose a native `web_search` tool. The relay backs it with
 | `NEBIUSRELAY_TELEMETRY_URL`        | Opt in to telemetry by pointing at your own collector. Off by default.                                                                                     |
 | `NEBIUSRELAY_METER=1`              | Route the spawned harnesses (Pi, Prime, Hermes, DeepSeek, Grok) through the daemon, so they get cost metering, model fallback and retries. Off by default. |
 | `NEBIUSRELAY_CACHE_READ_RATIO`     | Price of a cached input token as a fraction of the input price. Default `1` (Nebius publishes no cached rate, so cost is an upper bound).                  |
-| `NEBIUSRELAY_CODEX_SEARCH=1`       | Serve Codex's `/v1/alpha/search` from Tavily. Off by default (the response shape is derived from the Codex client, not a published spec).                  |
 | `NEBIUSRELAY_CODEX_MEMORY_MODEL`   | Model used to summarize Codex task traces for durable memory. Defaults to MiniMax M3.                                                                      |
 
 ### Metering the spawned harnesses

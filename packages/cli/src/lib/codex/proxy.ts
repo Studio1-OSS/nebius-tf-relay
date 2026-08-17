@@ -14,11 +14,9 @@ import {
   isCodexCompactPath,
   isCodexMemoriesPath,
   isCodexResponsesPath,
-  isCodexSearchPath,
   normalizeCodexPath,
   toCompactionPayload,
 } from "./compaction.js";
-import { codexSearchEnabled, runCodexSearch, type CodexSearchRequest } from "./search.js";
 import {
   invalidMemoryTraces,
   summarizeCodexMemories,
@@ -74,27 +72,6 @@ export async function handleCodexProxyRequest(
 
   if (req.method === "GET" && normalizeCodexPath(path) === CODEX_MODELS_PATH) {
     writeJson(res, 200, codexModelCatalog());
-    return;
-  }
-
-  // Standalone web search. Not a model turn - it returns results, so it is
-  // handled before the body is read as a ResponsesRequest.
-  if (req.method === "POST" && isCodexSearchPath(path)) {
-    if (!codexSearchEnabled()) {
-      // A 404 is what Codex sees today, and it falls back cleanly. Keep that
-      // as the default until the response shape is confirmed against a live
-      // client (see search.ts).
-      writeOpenAIError(res, 404, "not_found_error", "Codex search is not enabled on this relay.");
-      return;
-    }
-    const { body: searchBody } = await readJsonBodyWithSize(req);
-    const result = await perf.span("codex_search", () =>
-      runCodexSearch(searchBody as CodexSearchRequest, process.env.TAVILY_API_KEY, (label, value) =>
-        debugLog(options, label, value),
-      ),
-    );
-    writeJson(res, 200, result);
-    perf.end({ status: res.statusCode, stream: false });
     return;
   }
 

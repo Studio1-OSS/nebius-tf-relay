@@ -156,14 +156,12 @@ const CODEX_V1_ALIAS_PATHS = new Set([
   "/models",
   "/responses",
   "/responses/compact",
-  "/alpha/search",
   "/memories/trace_summarize",
 ]);
 
 export const CODEX_RESPONSES_PATH = "/v1/responses";
 export const CODEX_COMPACT_PATH = "/v1/responses/compact";
 export const CODEX_MODELS_PATH = "/v1/models";
-export const CODEX_SEARCH_PATH = "/v1/alpha/search";
 export const CODEX_MEMORIES_PATH = "/v1/memories/trace_summarize";
 
 export function normalizeCodexPath(path: string): string {
@@ -179,11 +177,6 @@ export function isCodexResponsesPath(path: string): boolean {
 /** True for the dedicated compaction endpoint (as opposed to a trigger item). */
 export function isCodexCompactPath(path: string): boolean {
   return normalizeCodexPath(path) === CODEX_COMPACT_PATH;
-}
-
-/** Codex standalone web search. Not a turn: it returns results, not a response. */
-export function isCodexSearchPath(path: string): boolean {
-  return normalizeCodexPath(path) === CODEX_SEARCH_PATH;
 }
 
 /** Codex durable-memory trace summarization. */
