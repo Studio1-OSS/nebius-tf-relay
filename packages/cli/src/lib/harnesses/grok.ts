@@ -12,6 +12,7 @@ import {
 import { HARNESS } from "../harness.js";
 import { defineHarness, type HarnessContext, type HarnessResult } from "../harness-types.js";
 import { resolveNebiusApiKey, resolveNebiusBaseUrl } from "../nebius-core.js";
+import { meteredEndpoint } from "../metered-spawn.js";
 
 export default defineHarness({
   id: HARNESS.GROK,
@@ -24,7 +25,13 @@ export default defineHarness({
     }
 
     const selectedModel = resolveCodexModel(ctx.main);
-    const baseUrl = resolveNebiusBaseUrl();
+    const endpoint = await meteredEndpoint({
+      agent: HARNESS.GROK,
+      apiKey,
+      baseUrl: resolveNebiusBaseUrl(),
+      model: selectedModel.definition,
+    });
+    const baseUrl = endpoint.baseUrl;
     // Isolated, empty auth file: Grok must use the Nebius key we supply rather
     // than the user's own xAI login, and their real auth file stays untouched.
     const temporaryAuthDirectory = mkdtempSync(join(tmpdir(), "nebiusrelay-grok-auth-"));
@@ -42,7 +49,7 @@ export default defineHarness({
       ];
       const env = buildGrokLaunchEnvironment({
         inheritedEnv: process.env,
-        apiKey,
+        apiKey: endpoint.apiKey,
         authPath,
         baseUrl,
         modelsListUrl: catalogServer.modelsListUrl,
@@ -72,6 +79,7 @@ export default defineHarness({
       process.exitCode = typeof result.status === "number" ? result.status : result.signal ? 1 : 0;
     } finally {
       try {
+        await endpoint.finish();
         await catalogServer?.close();
       } finally {
         rmSync(temporaryAuthDirectory, { recursive: true, force: true });

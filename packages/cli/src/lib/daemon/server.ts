@@ -10,6 +10,7 @@ import { extractToken, readJsonBody, requestPath, writeJson } from "../http-util
 import { handleProxyRequest } from "../claude/proxy.js";
 import { writeAnthropicError, isNebiusApiError } from "../claude/nebius-call.js";
 import { handleCodexProxyRequest, writeOpenAIError } from "../codex/proxy.js";
+import { handleChatPassthrough, isPassthroughPath } from "./chat-passthrough.js";
 import { readAppRegistration } from "./app-registration.js";
 import { nebiusrelayHome } from "../paths.js";
 import { initModelCatalog } from "../model-catalog-init.js";
@@ -420,6 +421,20 @@ async function handleDaemonRequest(
   // Surface the agent to the catch-all BEFORE dispatch, so a throw from either
   // proxy handler is rendered in the client's own wire format.
   opts.setAgent?.(session.agent);
+
+  // OpenAI-compatible passthrough for the spawned harnesses, which speak
+  // /chat/completions directly and would otherwise bypass metering entirely.
+  // Strictly for non-proxied agents: a Codex session's /v1/models must keep
+  // reaching its own translated catalog, not Nebius's raw one.
+  if (!isProxiedAgent(session.agent) && isPassthroughPath(requestPath(req))) {
+    try {
+      await handleChatPassthrough(req, res, requestPath(req), session);
+    } finally {
+      sessionRoute?.restore();
+    }
+    return;
+  }
+
   if (!isProxiedAgent(session.agent) || session.options === undefined) {
     writeAnthropicError(
       res,

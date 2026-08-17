@@ -43,7 +43,16 @@ const LAST_SEEN_PERSIST_INTERVAL_MS = envInt(
  * - `codex-app`: same proxy path as `codex`, but registered by the persistent
  *   ChatGPT Desktop app integration so telemetry can distinguish it.
  */
-export type AgentId = "claude" | "opencode" | "codex" | "codex-app";
+export type AgentId =
+  | "claude"
+  | "opencode"
+  | "codex"
+  | "codex-app"
+  | "pi"
+  | "prime"
+  | "hermes"
+  | "deepseek"
+  | "grok";
 
 /**
  * One live coding-agent session, keyed by the random auth token the launcher

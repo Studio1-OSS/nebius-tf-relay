@@ -8,6 +8,7 @@ import {
 import { HARNESS } from "../harness.js";
 import { defineHarness, type HarnessContext, type HarnessResult } from "../harness-types.js";
 import { resolveNebiusApiKey, resolveNebiusBaseUrl } from "../nebius-core.js";
+import { meteredEndpoint } from "../metered-spawn.js";
 
 export default defineHarness({
   id: HARNESS.DEEPSEEK,
@@ -20,12 +21,18 @@ export default defineHarness({
     }
 
     const selectedModel = resolveCodexModel(ctx.main);
-    const baseUrl = resolveNebiusBaseUrl();
+    const endpoint = await meteredEndpoint({
+      agent: HARNESS.DEEPSEEK,
+      apiKey,
+      baseUrl: resolveNebiusBaseUrl(),
+      model: selectedModel.definition,
+    });
+    const baseUrl = endpoint.baseUrl;
     const nativeDeepseekApiKey = process.env.DEEPSEEK_API_KEY;
     const patchPath = resolveDeepseekPatchPath(selectedModel, baseUrl, process.env);
     await writeDeepseekPatch(patchPath, selectedModel, baseUrl, nativeDeepseekApiKey);
     const launch = buildDeepseekLaunchSpec({
-      apiKey,
+      apiKey: endpoint.apiKey,
       baseUrl,
       patchPath,
       passthrough: ctx.passthrough ?? [],
@@ -50,6 +57,7 @@ export default defineHarness({
       child.on("exit", (status) => resolve({ status }));
     });
 
+    await endpoint.finish();
     if (typeof result.status === "number") {
       process.exitCode = result.status;
     }

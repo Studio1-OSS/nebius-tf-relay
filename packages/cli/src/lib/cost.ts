@@ -16,14 +16,48 @@ import { APPROX_CHARS_PER_TOKEN } from "./claude/context-budget.js";
  * selected model's rates from @nebiusrelay/models.
  */
 
+/**
+ * What a cached input token costs, as a fraction of the normal input price.
+ *
+ * Nebius serves cached prompts - `prompt_tokens_details.cached_tokens` comes
+ * back populated - but its catalog publishes no cached-input price, so we have
+ * no rate to read. Assuming they are free (the old behavior, `cache_read: 0`)
+ * silently under-reports spend, and on a long agentic session most input
+ * tokens are cache hits, so the error is not small. Default to charging them
+ * at the normal input rate: an upper bound is a safer thing to show someone
+ * watching their budget than a free lunch we cannot verify. Anyone who knows
+ * their actual rate can set it - e.g. 0.1 for a 90%-off cache.
+ */
+export const CACHE_READ_RATIO_ENV = "NEBIUSRELAY_CACHE_READ_RATIO";
+const DEFAULT_CACHE_READ_RATIO = 1;
+
+export function cacheReadRatio(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env[CACHE_READ_RATIO_ENV]?.trim();
+  if (!raw) {
+    return DEFAULT_CACHE_READ_RATIO;
+  }
+  const parsed = Number.parseFloat(raw);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+    // A ratio above 1 would mean caching costs more than not caching, and a
+    // negative one would credit the user. Both are misconfiguration - ignore
+    // rather than report a number we know is wrong.
+    return DEFAULT_CACHE_READ_RATIO;
+  }
+  return parsed;
+}
+
 function pricingFor(model: ModelDefinition): {
   inputPerToken: number;
   cachedInputPerToken: number;
   outputPerToken: number;
 } {
+  const inputPerToken = costPerToken(model.cost.input);
+  // A catalog that does publish a cached price wins over the ratio; the ratio
+  // only fills the gap Nebius leaves.
+  const publishedCached = costPerToken(model.cost.cache_read);
   return {
-    inputPerToken: costPerToken(model.cost.input),
-    cachedInputPerToken: costPerToken(model.cost.cache_read),
+    inputPerToken,
+    cachedInputPerToken: publishedCached > 0 ? publishedCached : inputPerToken * cacheReadRatio(),
     outputPerToken: costPerToken(model.cost.output),
   };
 }
@@ -134,8 +168,8 @@ export class CostTracker {
   /**
    * Record one Nebius chat-completions call. `promptTokens` is the total
    * input token count Nebius reports; `cachedTokens` is the subset that hit
-   * the shared prefix cache (Nebius's `cached_tokens` field) and is billed
-   * at the discounted cached rate. Returns the incremental cost of this call.
+   * the shared prefix cache (Nebius's `cached_tokens` field) and is billed at
+   * the cached rate (see cacheReadRatio). Returns this call's incremental cost.
    */
   addUsage(
     promptTokens: number,

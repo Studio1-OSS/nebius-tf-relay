@@ -12,6 +12,7 @@ import {
   resolveHermesCommand,
 } from "../hermes/core.js";
 import { resolveNebiusApiKey, resolveNebiusBaseUrl } from "../nebius-core.js";
+import { meteredEndpoint } from "../metered-spawn.js";
 
 export default defineHarness({
   id: HARNESS.HERMES,
@@ -25,7 +26,15 @@ export default defineHarness({
 
     const { mode, passthrough } = resolveHermesCommand(ctx.passthrough ?? []);
     const selectedModel = resolveCodexModel(ctx.main);
-    const baseUrl = resolveNebiusBaseUrl();
+    // Route through the daemon when metering is on, so this session's spend is
+    // tracked and it gets model fallback + retries like the proxied harnesses.
+    const endpoint = await meteredEndpoint({
+      agent: HARNESS.HERMES,
+      apiKey,
+      baseUrl: resolveNebiusBaseUrl(),
+      model: selectedModel.definition,
+    });
+    const baseUrl = endpoint.baseUrl;
     // Put the selected model first: Hermes uses the first entry as the
     // provider's default_model.
     const modelIds = [
@@ -36,12 +45,16 @@ export default defineHarness({
     ];
 
     const nativeHome = process.env.HERMES_HOME?.trim() || join(ctx.home || homedir(), ".hermes");
-    const overlay = createHermesHomeOverlay(nativeHome, { apiKey, baseUrl, modelIds });
+    const overlay = createHermesHomeOverlay(nativeHome, {
+      apiKey: endpoint.apiKey,
+      baseUrl,
+      modelIds,
+    });
     try {
       const launch = buildHermesLaunchSpec({
         mode,
         modelId: selectedModel.id,
-        apiKey,
+        apiKey: endpoint.apiKey,
         baseUrl,
         hermesHome: overlay,
         passthrough,
@@ -70,6 +83,7 @@ export default defineHarness({
       );
       process.exitCode = typeof result.status === "number" ? result.status : result.signal ? 1 : 0;
     } finally {
+      await endpoint.finish();
       rmSync(overlay, { recursive: true, force: true });
     }
     return {};

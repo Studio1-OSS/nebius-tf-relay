@@ -114,15 +114,37 @@ Claude Code and Codex expose a native `web_search` tool. The relay backs it with
 
 ## Configuration & env vars
 
-| Variable                           | Effect                                                                                                                                           |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `NEBIUS_API_KEY`                   | Nebius Token Factory key (or set via `configure`).                                                                                               |
-| `TAVILY_API_KEY`                   | Enables web search (or set via `configure`).                                                                                                     |
-| `NEBIUS_BASE_URL`                  | Override the API base (default `https://api.tokenfactory.nebius.com/v1`).                                                                        |
-| `NEBIUSRELAY_REASONING_EFFORT`     | `none`\|`low`\|`medium`\|`high`\|`max`. Default `none` for speed; raise for harder tasks.                                                        |
-| `NEBIUSRELAY_FALLBACK_MODEL`       | Model to fail over to when the target model returns no response headers (down/overloaded). Default `moonshotai/Kimi-K2.6`; set `off` to disable. |
-| `NEBIUSRELAY_DISABLE_AUTOUPDATE=1` | Stop the installed binary from self-updating.                                                                                                    |
-| `NEBIUSRELAY_TELEMETRY_URL`        | Opt in to telemetry by pointing at your own collector. Off by default.                                                                           |
+| Variable                           | Effect                                                                                                                                                     |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEBIUS_API_KEY`                   | Nebius Token Factory key (or set via `configure`).                                                                                                         |
+| `TAVILY_API_KEY`                   | Enables web search (or set via `configure`).                                                                                                               |
+| `NEBIUS_BASE_URL`                  | Override the API base (default `https://api.tokenfactory.nebius.com/v1`).                                                                                  |
+| `NEBIUSRELAY_REASONING_EFFORT`     | `none`\|`low`\|`medium`\|`high`\|`max`. Default `none` for speed; raise for harder tasks.                                                                  |
+| `NEBIUSRELAY_FALLBACK_MODEL`       | Model to fail over to when the target model returns no response headers (down/overloaded). Default `moonshotai/Kimi-K2.6`; set `off` to disable.           |
+| `NEBIUSRELAY_DISABLE_AUTOUPDATE=1` | Stop the installed binary from self-updating.                                                                                                              |
+| `NEBIUSRELAY_TELEMETRY_URL`        | Opt in to telemetry by pointing at your own collector. Off by default.                                                                                     |
+| `NEBIUSRELAY_METER=1`              | Route the spawned harnesses (Pi, Prime, Hermes, DeepSeek, Grok) through the daemon, so they get cost metering, model fallback and retries. Off by default. |
+| `NEBIUSRELAY_CACHE_READ_RATIO`     | Price of a cached input token as a fraction of the input price. Default `1` (Nebius publishes no cached rate, so cost is an upper bound).                  |
+| `NEBIUSRELAY_CODEX_SEARCH=1`       | Serve Codex's `/v1/alpha/search` from Tavily. Off by default (the response shape is derived from the Codex client, not a published spec).                  |
+| `NEBIUSRELAY_CODEX_MEMORY_MODEL`   | Model used to summarize Codex task traces for durable memory. Defaults to MiniMax M3.                                                                      |
+
+### Metering the spawned harnesses
+
+Claude and Codex are proxied, so the daemon meters every turn. The other
+harnesses hold the key and call Nebius directly, which is why they report
+`$0.00`. `NEBIUSRELAY_METER=1` points them at the daemon instead:
+
+```bash
+NEBIUSRELAY_METER=1 npi --print "..."
+# Nebius TF Relay ▸ Launching Pi Code with Nebius Token Factory.
+# [nebiusrelay cost] session total: $0.0056 (1,518 in, 69 out)
+```
+
+They then share the same client as everyone else — automatic model fallback,
+the per-model circuit breaker and transient-fault retries — and the real Nebius
+key stays inside the daemon (the harness only ever sees a local session token).
+If the daemon is unreachable the launcher says so and connects directly, so
+metering can never be the reason a session fails to start.
 
 The installed binary keeps itself up to date from `nebius-tf-relay.vercel.app`, throttled to once an hour, and swallows every failure. Dev/source runs never self-update.
 

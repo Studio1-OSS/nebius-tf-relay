@@ -1,4 +1,5 @@
 import { createSessionStore, type TrackedUsageSession } from "./daemon/storage.js";
+import { CACHE_READ_RATIO_ENV, cacheReadRatio } from "./cost.js";
 
 /**
  * Local spend reporting for `nebiusrelay usage`.
@@ -145,6 +146,15 @@ export function formatUsageReport(summary: UsageSummary, windowLabel: string): s
           `${row.sessions} session(s)`,
       );
     }
+  }
+
+  if (summary.cachedTokens > 0 && cacheReadRatio() === 1) {
+    lines.push("");
+    lines.push("Cached input is priced at the full input rate: Nebius serves cached prompts");
+    lines.push(
+      `but publishes no cached price, so this total is an upper bound. Set ${CACHE_READ_RATIO_ENV}`,
+    );
+    lines.push("to your actual discount (e.g. 0.1) if you know it.");
   }
 
   lines.push("");

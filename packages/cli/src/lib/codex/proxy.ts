@@ -12,10 +12,18 @@ import {
   compactionSummary,
   isCodexCompactionRequest,
   isCodexCompactPath,
+  isCodexMemoriesPath,
   isCodexResponsesPath,
+  isCodexSearchPath,
   normalizeCodexPath,
   toCompactionPayload,
 } from "./compaction.js";
+import { codexSearchEnabled, runCodexSearch, type CodexSearchRequest } from "./search.js";
+import {
+  invalidMemoryTraces,
+  summarizeCodexMemories,
+  type CodexMemoriesRequest,
+} from "./memories.js";
 import { objectKeys } from "./content-format.js";
 import {
   resolveCodexRequestModel,
@@ -66,6 +74,63 @@ export async function handleCodexProxyRequest(
 
   if (req.method === "GET" && normalizeCodexPath(path) === CODEX_MODELS_PATH) {
     writeJson(res, 200, codexModelCatalog());
+    return;
+  }
+
+  // Standalone web search. Not a model turn - it returns results, so it is
+  // handled before the body is read as a ResponsesRequest.
+  if (req.method === "POST" && isCodexSearchPath(path)) {
+    if (!codexSearchEnabled()) {
+      // A 404 is what Codex sees today, and it falls back cleanly. Keep that
+      // as the default until the response shape is confirmed against a live
+      // client (see search.ts).
+      writeOpenAIError(res, 404, "not_found_error", "Codex search is not enabled on this relay.");
+      return;
+    }
+    const { body: searchBody } = await readJsonBodyWithSize(req);
+    const result = await perf.span("codex_search", () =>
+      runCodexSearch(searchBody as CodexSearchRequest, process.env.TAVILY_API_KEY, (label, value) =>
+        debugLog(options, label, value),
+      ),
+    );
+    writeJson(res, 200, result);
+    perf.end({ status: res.statusCode, stream: false });
+    return;
+  }
+
+  // Durable memory: distill one or more task traces into keepable summaries.
+  if (req.method === "POST" && isCodexMemoriesPath(path)) {
+    const { body: memoriesBody } = await readJsonBodyWithSize(req);
+    const invalid = invalidMemoryTraces(memoriesBody);
+    if (invalid) {
+      writeOpenAIError(res, 400, "invalid_request_error", invalid);
+      return;
+    }
+    const memoryRequest = memoriesBody as CodexMemoriesRequest;
+    // Reuse the turn path's model resolution so the dedicated (cheap) memory
+    // model applies here too, rather than billing the user's coding model.
+    const memoryModel = resolveCodexRequestModel(
+      { model: memoryRequest.model, instructions: "## Memory Writing Agent:" } as ResponsesRequest,
+      options,
+    );
+    const abort = new AbortController();
+    res.once("close", () => {
+      if (!res.writableEnded) {
+        abort.abort();
+      }
+    });
+    const summarized = await perf.span("codex_memories", () =>
+      summarizeCodexMemories(
+        memoryRequest,
+        memoryModel.targetModelId,
+        memoryModel.definition,
+        options,
+        abort.signal,
+        (usage) => recordUsage(usage, options, memoryModel.definition),
+      ),
+    );
+    writeJson(res, 200, summarized);
+    perf.end({ status: res.statusCode, stream: false });
     return;
   }
 
