@@ -104,6 +104,35 @@ export async function meteredEndpoint(spec: MeteredSpawnSpec): Promise<MeteredEn
   });
 
   let released = false;
+  const finish = async (): Promise<void> => {
+    if (released) {
+      return;
+    }
+    released = true;
+    process.off("SIGINT", onSignal);
+    process.off("SIGTERM", onSignal);
+    keepalive.stop();
+    await printSessionCost(proxyUrl, sessionId).catch(() => undefined);
+    await daemonFetch(`${proxyUrl}/internal/sessions/${encodeURIComponent(sessionId)}`, {
+      method: "DELETE",
+    }).catch(() => undefined);
+  };
+
+  /**
+   * Ctrl-C is the normal way to stop several of these harnesses - a few (dsh)
+   * run a web UI and have no other exit - and it kills this launcher alongside
+   * the child. Without this the run ends with no cost line and the session sits
+   * registered until the daemon's reaper sweeps it, so the tokens look free.
+   */
+  function onSignal(signal: NodeJS.Signals): void {
+    void finish().finally(() => {
+      // 128 + signal number, the convention a shell reports for a signalled exit.
+      process.exit(signal === "SIGINT" ? 130 : 143);
+    });
+  }
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
+
   return {
     // The harness appends /chat/completions to this, landing on the daemon's
     // passthrough route rather than Nebius.
@@ -111,17 +140,7 @@ export async function meteredEndpoint(spec: MeteredSpawnSpec): Promise<MeteredEn
     // Never the real key: the daemon substitutes it upstream.
     apiKey: authToken,
     metered: true,
-    finish: async () => {
-      if (released) {
-        return;
-      }
-      released = true;
-      keepalive.stop();
-      await printSessionCost(proxyUrl, sessionId).catch(() => undefined);
-      await daemonFetch(`${proxyUrl}/internal/sessions/${encodeURIComponent(sessionId)}`, {
-        method: "DELETE",
-      }).catch(() => undefined);
-    },
+    finish,
   };
 }
 
