@@ -4,8 +4,7 @@ import { loadEnvFile } from "../lib/load-env.js";
 import { parseArgs } from "../lib/parse-args.js";
 import { printHelp, runConfigure } from "../lib/commands/global.js";
 import { dispatchHarnessCommand } from "../lib/commands/harness.js";
-import { detectInstalledHarness } from "../lib/detect.js";
-import type { HarnessId } from "../lib/harness.js";
+import { interactiveLauncherOptions } from "../lib/interactive-launcher-options.js";
 import { isHarnessCommand, resolveHarnessInvocation } from "../lib/commands/harness-invocation.js";
 import {
   readGlobalConfig,
@@ -113,7 +112,7 @@ async function runInteractiveLauncher(): Promise<void> {
   const clack = await import("@clack/prompts");
   const choice = await clack.select({
     message: "What do you want to run?",
-    options: launcherOptions(),
+    options: interactiveLauncherOptions(),
   });
   if (clack.isCancel(choice)) {
     clack.cancel("Cancelled.");
@@ -138,34 +137,6 @@ async function runInteractiveLauncher(): Promise<void> {
   }
 
   await dispatchHarnessCommand(choice, undefined, {});
-}
-
-/**
- * Launcher entries, with tools you actually have installed listed first - an
- * install-ordered menu beats a fixed one when only some harnesses are present.
- */
-function launcherOptions(): Array<{ value: string; label: string; hint: string }> {
-  const harnesses = [
-    { value: "codex", label: "Codex", hint: "ncodex" },
-    { value: "claude", label: "Claude Code", hint: "nclaude" },
-    { value: "pi", label: "Pi Code", hint: "npi" },
-    { value: "opencode", label: "OpenCode", hint: "nopencode" },
-    { value: "prime", label: "Prime Agent", hint: "nprime" },
-  ];
-  const installed: typeof harnesses = [];
-  const missing: typeof harnesses = [];
-  for (const entry of harnesses) {
-    const detected = detectInstalledHarness(entry.value as HarnessId).installed;
-    (detected ? installed : missing).push(
-      detected ? entry : { ...entry, hint: `${entry.hint} (not installed)` },
-    );
-  }
-  return [
-    ...installed,
-    ...missing,
-    { value: "chatgpt", label: "ChatGPT Desktop", hint: "chatgpt" },
-    { value: "configure", label: "Configure", hint: "API keys and detected tools" },
-  ];
 }
 
 function isInteractive(): boolean {
