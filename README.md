@@ -2,7 +2,11 @@
 
 Run your local coding agents on [Nebius Token Factory](https://tokenfactory.nebius.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, **Pi**, **Prime Agent**, **Hermes**, **DeepSeek Harness**, and **Grok Build** all talk to open-weight models (Kimi K3, Kimi K2.6, Qwen 3.5, DeepSeek V4, MiniMax M3) instead of their default backends.
 
-Checkout this Youtube video: [![Watch the video](https://youtube.com)](https://www.youtube.com/watch?v=u8c_exTe2To)
+---
+> Want to try open models from Nebius? You can register for the [Nebius Builder Program](https://dub.sh/AIStudio), and you can also discover 100+ AI projects built using open models on [awesome-ai-apps](https://github.com/Arindam200/awesome-ai-apps).
+
+---
+Checkout this Youtube video tutorial: [![Watch the video](https://youtube.com)](https://www.youtube.com/watch?v=u8c_exTe2To)
 
 ```bash
 curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh
