@@ -12,6 +12,11 @@ import {
   formatWebSearchToolResult,
   stringifyAnthropicContent,
 } from "./content-format.js";
+import {
+  currentReasoningHistoryPolicy,
+  reasoningHistoryPolicy,
+  type ReasoningHistoryMode,
+} from "../reasoning-history.js";
 import type {
   AnthropicMessagesRequest,
   AnthropicTool,
@@ -213,7 +218,12 @@ export async function runClaudeWebSearch(
 export function toOpenAIMessages(
   body: AnthropicMessagesRequest,
   targetModel?: ModelDefinition,
+  reasoningMode?: ReasoningHistoryMode,
 ): OpenAIMessage[] {
+  const historyPolicy =
+    reasoningMode === undefined
+      ? currentReasoningHistoryPolicy()
+      : reasoningHistoryPolicy(reasoningMode);
   const systemParts = [
     targetModel
       ? `${NEBIUSRELAY_IDENTITY_PROMPT} Backend: ${targetModel.name} (${targetModel.id}).`
@@ -270,7 +280,9 @@ export function toOpenAIMessages(
       messages.push({
         role: message.role,
         content: content || null,
-        ...(reasoningParts.length > 0 ? { reasoning_content: reasoningParts.join("\n") } : {}),
+        ...(reasoningParts.length > 0 && historyPolicy.includeHistoricalReasoning
+          ? { reasoning_content: reasoningParts.join("\n") }
+          : {}),
         ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
       });
     }

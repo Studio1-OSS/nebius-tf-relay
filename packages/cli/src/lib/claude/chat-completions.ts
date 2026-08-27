@@ -29,6 +29,7 @@ import type {
   ClaudeNativeWebSearchRecord,
   OpenAIChatResponse,
 } from "./wire-types.js";
+import { currentReasoningHistoryPolicy } from "../reasoning-history.js";
 
 type ClaudeChatOptions = {
   apiKey: string;
@@ -92,7 +93,10 @@ export async function callNebiusChatCompletions(
         : reasoningEffort
           ? { reasoning_effort: reasoningEffort }
           : {}),
-      chat_template_kwargs: { clear_thinking: options.isCompactionRequest === true },
+      chat_template_kwargs: {
+        clear_thinking:
+          options.isCompactionRequest === true || currentReasoningHistoryPolicy().clearThinking,
+      },
       stream: false,
     };
     // Estimate input tokens from the inbound raw byte length via the session's

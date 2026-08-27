@@ -24,7 +24,10 @@ Usage:
   nebiusrelay daemon uninstall  stop starting the daemon at login
   nebiusrelay daemon status     show auto-start service status
   nebiusrelay daemon stop       stop the running daemon
-  nebiusrelay chatgpt [--model <model>] [--restore]  (alpha)
+  nebiusrelay chatgpt [--model <model>]              (alpha)
+  nebiusrelay chatgpt off       stop routing Codex/ChatGPT Desktop through the
+                                relay and restore your previous config
+                                (also: "codex off", or bare "nebiusrelay off")
   nebiusrelay codex [...]       (alias: ncodex)
   nebiusrelay claude [...]      (alias: nclaude)
   nebiusrelay pi [...]          (alias: npi)
@@ -35,7 +38,8 @@ Usage:
   nebiusrelay grok [...]        (alias: ngrok; Grok's UI on Nebius models)
 
 Extra args after codex/claude/pi/opencode/prime are passed through.
-ChatGPT App support is alpha; run \`nebiusrelay chatgpt --restore\` (alias: codex-app) to restore the previous desktop config.
+ChatGPT App support is alpha. The managed ~/.codex/config.toml is shared with the
+Codex CLI, so "chatgpt off" (or "codex off") restores both.
 
 Codex flags:
   --no-mcp   Skip your ~/.codex/config.toml MCP servers for a fast startup

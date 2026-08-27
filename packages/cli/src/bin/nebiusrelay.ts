@@ -5,6 +5,7 @@ import { parseArgs } from "../lib/parse-args.js";
 import { printHelp, runConfigure } from "../lib/commands/global.js";
 import { dispatchHarnessCommand } from "../lib/commands/harness.js";
 import { interactiveLauncherOptions } from "../lib/interactive-launcher-options.js";
+import { resolveDisableRequest } from "../lib/commands/managed-config.js";
 import { isHarnessCommand, resolveHarnessInvocation } from "../lib/commands/harness-invocation.js";
 import {
   readGlobalConfig,
@@ -281,6 +282,24 @@ async function main() {
       return;
     }
     throw new Error(`Unknown "daemon ${verb}" command. Expected: ${expected}.`);
+  }
+
+  // `off` / `restore` as a verb, before harness dispatch: otherwise the verb is
+  // forwarded to the harness as a prompt (see managed-config.ts).
+  const disable = resolveDisableRequest(command, [
+    parsed.positional[1],
+    parsed.flags.passthrough?.[0],
+  ]);
+  if (disable.kind === "error") {
+    throw new Error(disable.message);
+  }
+  if (disable.kind === "restore" || (command === "codex-app" && parsed.flags.restore)) {
+    const { runCodexAppCommand } = await import("../lib/codex-app.js");
+    const result = await runCodexAppCommand({ home: os.homedir(), restore: true });
+    if (result.message) {
+      console.log(result.message);
+    }
+    return;
   }
 
   if (command === "codex-app") {

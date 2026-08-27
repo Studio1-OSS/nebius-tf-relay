@@ -236,7 +236,14 @@ async function restoreCodexApp(home: string): Promise<HarnessResult> {
   const manifestPath = path.join(backupDir(home), BACKUP_MANIFEST);
   const raw = await readTextIfExists(manifestPath);
   if (!raw) {
-    throw new Error(`No ChatGPT App backup found at ${manifestPath}.`);
+    // Nothing managed means the user already has their own config - which is
+    // exactly the state they asked for. Erroring here made `off` look broken
+    // when it had simply already been done (or never applied).
+    return {
+      message:
+        "No relay-managed Codex config found - nothing to turn off.\n" +
+        "Your ~/.codex/config.toml is already your own.",
+    };
   }
 
   const manifest = JSON.parse(raw) as BackupManifest;
@@ -275,7 +282,11 @@ async function restoreCodexApp(home: string): Promise<HarnessResult> {
   const launch = await launchCodexApp({ reason: "restored", openIfClosed: false });
   return {
     message: [
-      "ChatGPT App restored to your previous profile.",
+      // The managed config is ~/.codex/config.toml, which BOTH ChatGPT Desktop
+      // and the Codex CLI read - say so, or a `codex off` user is left
+      // wondering why the answer mentions an app they may not even run.
+      "Relay-managed Codex config removed. ChatGPT Desktop and the Codex CLI",
+      "are both back on your previous profile.",
       `Backup date: ${manifest.createdAt}`,
       codexAppLaunchMessage(launch),
     ].join("\n"),

@@ -40,6 +40,7 @@ import type {
   OpenAIMessage,
   StreamProxyResult,
 } from "./wire-types.js";
+import { currentReasoningHistoryPolicy } from "../reasoning-history.js";
 
 type ClaudeStreamOptions = {
   apiKey: string;
@@ -110,7 +111,10 @@ export async function streamAnthropicFromNebius(
       : reasoningEffort
         ? { reasoning_effort: reasoningEffort }
         : {}),
-    chat_template_kwargs: { clear_thinking: options.isCompactionRequest === true },
+    chat_template_kwargs: {
+      clear_thinking:
+        options.isCompactionRequest === true || currentReasoningHistoryPolicy().clearThinking,
+    },
     stream: true,
     // Guarantee Nebius sends a usage chunk at the end so cost tracking has
     // real token counts (without this, some streamed responses omit usage).

@@ -24,6 +24,7 @@ import type {
   ResponsesTextConfig,
   ResponsesTool,
 } from "./wire-types.js";
+import { currentReasoningHistoryPolicy } from "../reasoning-history.js";
 
 const CODEX_IDENTITY_PROMPT =
   "You are running inside Codex through nebiusrelay's local Responses-to-Nebius proxy. " +
@@ -84,7 +85,7 @@ export function toChatPayload(
     tool_choice: toChatToolChoice(body.tool_choice, toolTranslation),
     response_format: toChatResponseFormat(body.text),
     ...(translatedReasoningEffort ? { reasoning_effort: translatedReasoningEffort } : {}),
-    chat_template_kwargs: { clear_thinking: false },
+    chat_template_kwargs: { clear_thinking: currentReasoningHistoryPolicy().clearThinking },
     stream,
     ...(stream ? { stream_options: { include_usage: true } } : {}),
   };
@@ -158,7 +159,9 @@ function toChatMessages(
       role: "assistant",
       content: null,
       tool_calls: pendingToolCalls.splice(0),
-      ...(reasoning ? { reasoning_content: reasoning } : {}),
+      ...(reasoning && currentReasoningHistoryPolicy().includeHistoricalReasoning
+        ? { reasoning_content: reasoning }
+        : {}),
     });
   };
   // Replay compaction checkpoints as readable text. A `compaction` item carries
@@ -238,7 +241,9 @@ function toChatMessages(
       messages.push({
         role,
         content: toChatMessageContent(item.content),
-        ...(reasoning ? { reasoning_content: reasoning } : {}),
+        ...(reasoning && currentReasoningHistoryPolicy().includeHistoricalReasoning
+          ? { reasoning_content: reasoning }
+          : {}),
       });
     }
   }

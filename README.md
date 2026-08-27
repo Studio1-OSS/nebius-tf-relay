@@ -120,18 +120,19 @@ Claude Code and Codex expose a native `web_search` tool. The relay backs it with
 
 ## Configuration & env vars
 
-| Variable                           | Effect                                                                                                                                                     |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NEBIUS_API_KEY`                   | Nebius Token Factory key (or set via `configure`).                                                                                                         |
-| `TAVILY_API_KEY`                   | Enables web search (or set via `configure`).                                                                                                               |
-| `NEBIUS_BASE_URL`                  | Override the API base (default `https://api.tokenfactory.nebius.com/v1`).                                                                                  |
-| `NEBIUSRELAY_REASONING_EFFORT`     | `none`\|`low`\|`medium`\|`high`\|`max`. Default `none` for speed; raise for harder tasks.                                                                  |
-| `NEBIUSRELAY_FALLBACK_MODEL`       | Model to fail over to when the target model returns no response headers (down/overloaded). Default `moonshotai/Kimi-K2.6`; set `off` to disable.           |
-| `NEBIUSRELAY_DISABLE_AUTOUPDATE=1` | Stop the installed binary from self-updating.                                                                                                              |
-| `NEBIUSRELAY_TELEMETRY_URL`        | Opt in to telemetry by pointing at your own collector. Off by default.                                                                                     |
-| `NEBIUSRELAY_METER=1`              | Route the spawned harnesses (Pi, Prime, Hermes, DeepSeek, Grok) through the daemon, so they get cost metering, model fallback and retries. Off by default. |
-| `NEBIUSRELAY_CACHE_READ_RATIO`     | Price of a cached input token as a fraction of the input price. Default `1` (Nebius publishes no cached rate, so cost is an upper bound).                  |
-| `NEBIUSRELAY_CODEX_MEMORY_MODEL`   | Model used to summarize Codex task traces for durable memory. Defaults to MiniMax M3.                                                                      |
+| Variable                           | Effect                                                                                                                                                                                 |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEBIUS_API_KEY`                   | Nebius Token Factory key (or set via `configure`).                                                                                                                                     |
+| `TAVILY_API_KEY`                   | Enables web search (or set via `configure`).                                                                                                                                           |
+| `NEBIUS_BASE_URL`                  | Override the API base (default `https://api.tokenfactory.nebius.com/v1`).                                                                                                              |
+| `NEBIUSRELAY_REASONING_EFFORT`     | `none`\|`low`\|`medium`\|`high`\|`max`. Default `none` for speed; raise for harder tasks.                                                                                              |
+| `NEBIUSRELAY_FALLBACK_MODEL`       | Model to fail over to when the target model returns no response headers (down/overloaded). Default `moonshotai/Kimi-K2.6`; set `off` to disable.                                       |
+| `NEBIUSRELAY_DISABLE_AUTOUPDATE=1` | Stop the installed binary from self-updating.                                                                                                                                          |
+| `NEBIUSRELAY_TELEMETRY_URL`        | Opt in to telemetry by pointing at your own collector. Off by default.                                                                                                                 |
+| `NEBIUSRELAY_METER=1`              | Route the spawned harnesses (Pi, Prime, Hermes, DeepSeek, Grok) through the daemon, so they get cost metering, model fallback and retries. Off by default.                             |
+| `NEBIUSRELAY_CACHE_READ_RATIO`     | Price of a cached input token as a fraction of the input price. Default `1` (Nebius publishes no cached rate, so cost is an upper bound).                                              |
+| `NEBIUSRELAY_REASONING_HISTORY`    | `full` (default) \| `interleaved` \| `off`. How much of previous turns' reasoning is replayed each turn. `off` is cheapest on long sessions; current-turn reasoning is never affected. |
+| `NEBIUSRELAY_CODEX_MEMORY_MODEL`   | Model used to summarize Codex task traces for durable memory. Defaults to MiniMax M3.                                                                                                  |
 
 ### Metering the spawned harnesses
 
