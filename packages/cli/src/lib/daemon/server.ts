@@ -242,6 +242,9 @@ export async function runDaemon(options: DaemonOptions = {}): Promise<void> {
     if (debug) {
       process.stderr.write(`[nebiusrelay daemon] ${signal} - shutting down.\n`);
     }
+    // Persist every live session's cost before the store closes: a restart
+    // would otherwise drop whatever the running sessions had spent.
+    activeSessions.flushAll();
     activeSessions.closeStore();
     server.close();
     try {
@@ -421,6 +424,15 @@ async function handleDaemonRequest(
   // Surface the agent to the catch-all BEFORE dispatch, so a throw from either
   // proxy handler is rendered in the client's own wire format.
   opts.setAgent?.(session.agent);
+
+  // Persist this session's cost once the response is done. The lookup above
+  // flushes too, but that runs BEFORE the turn spends anything - so without
+  // this the last turn of every session would be missing from `usage` until
+  // the session ended, and entirely lost for one that never ends.
+  const owning = session;
+  res.once("finish", () => {
+    activeSessions.flushUsage(owning);
+  });
 
   // OpenAI-compatible passthrough for the spawned harnesses, which speak
   // /chat/completions directly and would otherwise bypass metering entirely.

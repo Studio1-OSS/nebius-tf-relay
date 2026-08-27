@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   buildSession,
+  toPersistedSession,
   toPublicSessionView,
   type RegisterSessionRequest,
 } from "../../cli/src/lib/daemon/state.js";
@@ -75,3 +76,48 @@ function registerBody(token: string): RegisterSessionRequest {
     modelDefinition: MODEL,
   };
 }
+
+/**
+ * `nebiusrelay usage` groups by model. Model ids used to be persisted only when
+ * a session had proxy options, which spawned harnesses never have - so every
+ * Pi/Prime/Hermes/DeepSeek/Grok session was filed under model "unknown",
+ * blanking the by-model breakdown for exactly the tools metering was added for.
+ */
+describe("model attribution for spawned harnesses", () => {
+  test("a spawned session persists its model id and name", () => {
+    const state = buildSession({
+      token: "spawned",
+      agent: "pi",
+      apiKey: "k",
+      baseUrl: "https://api.studio.nebius.com/v1",
+      modelLabel: MODEL.name,
+      modelDefinition: MODEL,
+    } satisfies RegisterSessionRequest);
+
+    // No proxy options: this is the spawned path.
+    expect(state.options).toBeUndefined();
+
+    const persisted = toPersistedSession(state);
+    expect(persisted.modelId).toBe(MODEL.id);
+    expect(persisted.targetModelId).toBe(MODEL.id);
+    expect(persisted.modelName).toBe(MODEL.name);
+  });
+
+  test("a proxied session still persists its own alias, not the raw id", () => {
+    const state = buildSession({
+      token: "proxied",
+      agent: "claude",
+      apiKey: "k",
+      baseUrl: "https://api.studio.nebius.com/v1",
+      modelLabel: MODEL.name,
+      modelId: MODEL.anthropicAlias,
+      targetModelId: MODEL.id,
+      modelName: MODEL.name,
+      modelDefinition: MODEL,
+    } satisfies RegisterSessionRequest);
+
+    const persisted = toPersistedSession(state);
+    expect(persisted.modelId).toBe(MODEL.anthropicAlias);
+    expect(persisted.targetModelId).toBe(MODEL.id);
+  });
+});

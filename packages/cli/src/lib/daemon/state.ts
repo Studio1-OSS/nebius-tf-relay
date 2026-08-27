@@ -29,6 +29,12 @@ const LAST_SEEN_PERSIST_INTERVAL_MS = envInt(
   DEFAULT_LAST_SEEN_PERSIST_INTERVAL_MS,
 );
 
+/** How often a live session's accumulated cost is written to the store. */
+const USAGE_PERSIST_INTERVAL_MS = envInt("NEBIUSRELAY_DAEMON_USAGE_PERSIST_INTERVAL_MS", 10_000);
+
+/** Fallback when a closed-out session has no recorded spend at all. */
+const ZERO_COST_SUMMARY = "[nebiusrelay cost] session total: $0.0000 (0 in, 0 out)";
+
 /**
  * Which coding agent a session belongs to. This selects how cost is tracked:
  * - `claude`: the daemon PROXIES the agent's traffic (it
@@ -76,6 +82,8 @@ export type SessionState = {
   startedAt: number;
   lastSeenAt: number;
   lastSeenPersistedAt?: number;
+  /** Last time this session's cost was written to the store. */
+  usagePersistedAt?: number;
   endedAt?: number;
   /** Display label for local session status, e.g. "GLM 5.2". */
   modelLabel: string;
@@ -227,11 +235,19 @@ export class SessionRegistry {
     const now = Date.now();
     for (const session of persisted) {
       if (session.pid !== undefined && !isProcessAlive(session.pid)) {
+        // Close it out with whatever was persisted, not zeros: the launcher
+        // died, but the tokens it spent were still billed. Writing $0.0000
+        // over a real total erased spend from `nebiusrelay usage` for good.
         this.store.markSessionEnded(
           session.token,
           now,
-          "[nebiusrelay cost] session total: $0.0000 (0 in, 0 out)",
-          { promptTokens: 0, cachedTokens: 0, completionTokens: 0, costUsd: 0 },
+          session.costSummary ?? session.externalSummary ?? ZERO_COST_SUMMARY,
+          {
+            promptTokens: session.promptTokens ?? 0,
+            cachedTokens: session.cachedTokens ?? 0,
+            completionTokens: session.completionTokens ?? 0,
+            costUsd: session.costUsd ?? 0,
+          },
         );
         continue;
       }
@@ -240,7 +256,7 @@ export class SessionRegistry {
         this.store.markSessionEnded(
           session.token,
           now,
-          session.externalSummary ?? "[nebiusrelay cost] session total: $0.0000 (0 in, 0 out)",
+          session.externalSummary ?? ZERO_COST_SUMMARY,
           {
             promptTokens: session.promptTokens ?? 0,
             cachedTokens: session.cachedTokens ?? 0,
@@ -334,6 +350,37 @@ export class SessionRegistry {
     }
     state.lastSeenPersistedAt = now;
     this.store?.updateSessionLastSeen(state.token, now);
+    // Persist cost on the same cadence. A proxied session's spend used to live
+    // only in this process's CostTracker until the session ended, so a daemon
+    // restart lost it - and a session that never ends (ChatGPT Desktop) never
+    // wrote it at all.
+    this.flushUsage(state);
+  }
+
+  /**
+   * Write a live session's accumulated cost to the store. Throttled, since a
+   * tool loop can drive many requests a second; pass force to write regardless
+   * (shutdown, or a session about to go away).
+   */
+  flushUsage(state: SessionState, force = false): void {
+    const now = Date.now();
+    if (!force && now - (state.usagePersistedAt ?? 0) < USAGE_PERSIST_INTERVAL_MS) {
+      return;
+    }
+    state.usagePersistedAt = now;
+    this.store?.updateSessionUsage(
+      state.token,
+      state.costTracker.summarize(),
+      state.costTracker.totals,
+      state.externalSummary,
+    );
+  }
+
+  /** Persist every live session's cost - called on graceful shutdown. */
+  flushAll(): void {
+    for (const state of this.map.values()) {
+      this.flushUsage(state, true);
+    }
   }
 
   private enforceNoPidSessionLimit(now: number): number {
@@ -465,7 +512,7 @@ function roundPerfMs(value: number): number {
   return Math.round(value * 1000) / 1000;
 }
 
-function toPersistedSession(state: SessionState): PersistedSession {
+export function toPersistedSession(state: SessionState): PersistedSession {
   const base: PersistedSession = {
     token: state.token,
     agent: state.agent,
@@ -485,6 +532,15 @@ function toPersistedSession(state: SessionState): PersistedSession {
     ...(state.externalSummary !== undefined ? { externalSummary: state.externalSummary } : {}),
     ...(state.debug !== undefined ? { debug: state.debug } : {}),
   };
+  if (state.options === undefined) {
+    // Spawned harnesses (pi, prime, hermes, deepseek, grok) have no proxy
+    // options, so these stayed NULL and `nebiusrelay usage` filed every one of
+    // their sessions under model "unknown". The session's own definition is
+    // the right source for them.
+    base.modelId = state.modelDefinition.id;
+    base.targetModelId = state.modelDefinition.id;
+    base.modelName = state.modelDefinition.name;
+  }
   if (state.options !== undefined) {
     base.modelId = state.options.modelId;
     base.targetModelId = state.options.targetModelId;

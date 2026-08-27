@@ -26,6 +26,8 @@ export type StoredSession = RegisterSessionRequest & {
   completionTokens?: number;
   costUsd?: number;
   externalSummary?: string;
+  /** Last persisted cost line, so a restart can close a session out honestly. */
+  costSummary?: string;
 };
 
 export type SessionPersistInput = RegisterSessionRequest & {
@@ -49,7 +51,10 @@ export type TrackedUsageSession = {
   cachedTokens: number;
   completionTokens: number;
   costUsd: number;
+  /** Session end, or last activity for one still running. */
   endedAt: number;
+  /** True while the session is still open (spend may still grow). */
+  active?: boolean;
 };
 
 export type SessionStore = {
@@ -254,13 +259,18 @@ class SqliteSessionStore implements SessionStore {
   }
 
   queryUsageSince(since: number): TrackedUsageSession[] {
+    // Active sessions count too. Requiring ended_at hid every session still
+    // running - and ChatGPT Desktop registers without a pid, so it never ends
+    // while the app is open: its spend was permanently invisible here. An
+    // active session is in-window if it was seen (or started) inside it.
     const rows = this.db
       .prepare(
         `SELECT * FROM sessions
-         WHERE ended_at IS NOT NULL AND ended_at >= ?
-         ORDER BY ended_at DESC`,
+         WHERE (ended_at IS NOT NULL AND ended_at >= ?)
+            OR (ended_at IS NULL AND COALESCE(last_seen_at, started_at) >= ?)
+         ORDER BY COALESCE(ended_at, last_seen_at, started_at) DESC`,
       )
-      .all(since) as SessionRow[];
+      .all(since, since) as SessionRow[];
     return rows.map((row) => ({
       agent: row.agent,
       modelId: row.model_id,
@@ -269,7 +279,8 @@ class SqliteSessionStore implements SessionStore {
       cachedTokens: row.cached_tokens,
       completionTokens: row.completion_tokens,
       costUsd: row.cost_usd,
-      endedAt: row.ended_at ?? 0,
+      endedAt: row.ended_at ?? row.last_seen_at ?? row.started_at,
+      active: row.ended_at === null || row.ended_at === undefined,
     }));
   }
 
@@ -442,6 +453,7 @@ class SqliteSessionStore implements SessionStore {
       completionTokens: row.completion_tokens,
       costUsd: row.cost_usd,
       ...(row.external_summary ? { externalSummary: row.external_summary } : {}),
+      ...(row.cost_summary ? { costSummary: row.cost_summary } : {}),
     };
   }
 }

@@ -20,6 +20,8 @@ export type UsageBreakdown = {
 
 export type UsageSummary = UsageBreakdown & {
   since: number;
+  /** How many of these sessions are still running (their spend can still grow). */
+  activeSessions: number;
   byModel: Array<UsageBreakdown & { model: string }>;
   byHarness: Array<UsageBreakdown & { agent: string }>;
 };
@@ -42,7 +44,7 @@ function add(into: UsageBreakdown, session: TrackedUsageSession): UsageBreakdown
   };
 }
 
-/** Aggregate completed sessions into totals plus per-model and per-harness rows. */
+/** Aggregate sessions into totals plus per-model and per-harness rows. */
 export function summarizeUsage(
   sessions: readonly TrackedUsageSession[],
   since: number,
@@ -50,8 +52,12 @@ export function summarizeUsage(
   let totals: UsageBreakdown = { ...EMPTY };
   const models = new Map<string, UsageBreakdown>();
   const harnesses = new Map<string, UsageBreakdown>();
+  let activeSessions = 0;
 
   for (const session of sessions) {
+    if (session.active) {
+      activeSessions += 1;
+    }
     totals = add(totals, session);
     const model = session.modelName ?? session.modelId ?? "unknown";
     models.set(model, add(models.get(model) ?? { ...EMPTY }, session));
@@ -62,6 +68,7 @@ export function summarizeUsage(
   return {
     ...totals,
     since,
+    activeSessions,
     byModel: [...models].map(([model, v]) => ({ model, ...v })).sort(byCost),
     byHarness: [...harnesses].map(([agent, v]) => ({ agent, ...v })).sort(byCost),
   };
@@ -111,15 +118,18 @@ function formatTokens(value: number): string {
 export function formatUsageReport(summary: UsageSummary, windowLabel: string): string {
   if (summary.sessions === 0) {
     return (
-      `No completed sessions in the last ${windowLabel}.\n` +
-      `Usage is recorded when a session exits, so run a turn and try again.`
+      `No sessions in the last ${windowLabel}.\n` + `Run a turn through any harness and try again.`
     );
   }
 
   const lines: string[] = [];
   lines.push(`Nebius TF Relay usage - last ${windowLabel}`);
   lines.push("");
-  lines.push(`  ${summary.sessions} session(s)   ${formatUsd(summary.costUsd)} total`);
+  lines.push(
+    `  ${summary.sessions} session(s)` +
+      (summary.activeSessions > 0 ? ` (${summary.activeSessions} still running)` : "") +
+      `   ${formatUsd(summary.costUsd)} total`,
+  );
   lines.push(
     `  ${formatTokens(summary.promptTokens)} in` +
       (summary.cachedTokens > 0 ? ` (${formatTokens(summary.cachedTokens)} cached)` : "") +

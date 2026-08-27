@@ -88,6 +88,11 @@ export async function meteredEndpoint(spec: MeteredSpawnSpec): Promise<MeteredEn
     apiKey: spec.apiKey,
     baseUrl: spec.baseUrl,
     modelLabel: spec.model.name,
+    // Send the model id/name so the session carries them explicitly rather
+    // than relying on the store deriving them from modelDefinition.
+    modelId: spec.model.id,
+    targetModelId: spec.model.id,
+    modelName: spec.model.name,
     modelDefinition: spec.model,
     ...(process.env.NEBIUSRELAY_DEBUG === "1" ? { debug: true } : {}),
   };
