@@ -1,5 +1,14 @@
 import { createHash } from "node:crypto";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { stringify } from "yaml";
 import type { ModelDefinition } from "@nebiusrelay/models";
@@ -130,6 +139,41 @@ export async function writeDeepseekPatch(
   );
 }
 
+/**
+ * Pull a `--profile <name>` out of the passthrough args.
+ *
+ * dsh boots a named profile: `web` is its local web UI (the default here), and
+ * `headless` answers a single task, prints the result, and exits - the only way
+ * to script it. The launcher flag must come BEFORE the profile's own args, so
+ * it cannot simply be forwarded; we hoist it and drop it from the remainder.
+ */
+export function extractDeepseekProfile(args: string[]): {
+  profile: string;
+  rest: string[];
+} {
+  const rest: string[] = [];
+  let profile = "web";
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--profile") {
+      const value = args[index + 1];
+      if (value !== undefined) {
+        profile = value;
+        index += 1;
+      }
+      continue;
+    }
+    if (arg?.startsWith("--profile=")) {
+      profile = arg.slice("--profile=".length);
+      continue;
+    }
+    if (arg !== undefined) {
+      rest.push(arg);
+    }
+  }
+  return { profile, rest };
+}
+
 function argsWithoutPatchOverrides(args: string[]): string[] {
   const sanitized: string[] = [];
   for (let index = 0; index < args.length; index += 1) {
@@ -161,15 +205,90 @@ export function buildDeepseekLaunchSpec({
   passthrough: string[];
   env?: NodeJS.ProcessEnv;
 }): DeepseekLaunchSpec {
+  const { profile, rest: passthroughArgs } = extractDeepseekProfile(passthrough);
   return {
     binary: "dsh",
-    // `dsh web` launches its local web UI; --patch layers our provider config
-    // over its defaults. A user-supplied --patch is stripped so ours applies.
-    args: ["web", "--patch", patchPath, ...argsWithoutPatchOverrides(passthrough)],
+    // `dsh <profile>` boots a profile - `web` (its local UI) unless the caller
+    // asked for another, e.g. `--profile headless` for a single scripted task.
+    // --patch layers our provider config over the profile's defaults; a
+    // user-supplied --patch is stripped so ours applies.
+    // Always the `--profile <name>` flag form: `web` is also a subcommand, but
+    // `headless` is not, so the positional form only works for one of them.
+    args: [
+      "--profile",
+      profile,
+      "--patch",
+      patchPath,
+      ...argsWithoutPatchOverrides(passthroughArgs),
+    ],
     env: {
       ...env,
       [DEEPSEEK_API_KEY_ENV]: apiKey,
       NEBIUS_BASE_URL: baseUrl,
     },
   };
+}
+
+/**
+ * A DSH_HOME overlay that lets `--model` actually take effect.
+ *
+ * dsh persists the model you last picked in `$DSH_HOME/settings.yaml` under
+ * `agent-default-model`, and that setting outranks both the profile config and
+ * our `--patch`. So after any run where a model was chosen in the web UI,
+ * `ndeepseek --model X` was silently ignored - every later run kept using the
+ * remembered model while our banner claimed otherwise. Measured: a run launched
+ * as "GLM 5.3 Flash" billed at DeepSeek V4 Pro's $1.75/M.
+ *
+ * Rewriting the user's settings.yaml would fix it, but the relay's whole
+ * contract is that it writes nothing permanent to your tools' config. So build
+ * a throwaway home instead: symlink everything (sessions, profiles and their
+ * node_modules stay shared and resumable), and copy settings.yaml with the
+ * model override removed so our patch wins.
+ */
+export function createDeepseekHomeOverlay(nativeHome: string): string {
+  const overlay = mkdtempSync(join(tmpdir(), "nebiusrelay-dsh-"));
+  if (!existsSync(nativeHome)) {
+    return overlay;
+  }
+  for (const entry of readdirSync(nativeHome, { withFileTypes: true })) {
+    const from = join(nativeHome, entry.name);
+    const to = join(overlay, entry.name);
+    if (entry.name === SETTINGS_FILE && entry.isFile()) {
+      // Copied, not linked: we edit it and must not touch the real one.
+      writeFileSync(to, withoutPersistedModel(readFileSync(from, "utf8")), {
+        encoding: "utf8",
+        mode: 0o600,
+      });
+      continue;
+    }
+    symlinkSync(from, to, entry.isDirectory() ? "dir" : "file");
+  }
+  return overlay;
+}
+
+const SETTINGS_FILE = "settings.yaml";
+
+/**
+ * Strip the `agent-default-model:` block from a dsh settings file.
+ *
+ * Hand-rolled rather than a YAML dependency: the file is a flat top-level map,
+ * so the block runs from its key to the next line that starts in column zero.
+ */
+export function withoutPersistedModel(settings: string): string {
+  const lines = settings.split("\n");
+  const out: string[] = [];
+  let skipping = false;
+  for (const line of lines) {
+    if (line.startsWith("agent-default-model:")) {
+      skipping = true;
+      continue;
+    }
+    // Indented lines and blanks belong to the block being skipped.
+    if (skipping && (line.startsWith(" ") || line.startsWith("\t") || line.trim() === "")) {
+      continue;
+    }
+    skipping = false;
+    out.push(line);
+  }
+  return out.join("\n");
 }
