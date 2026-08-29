@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   acceptsReasoningEffort,
+  minimumReasoningEffort,
   findModelById,
   MINIMAX_M3,
   type ModelDefinition,
@@ -660,9 +661,9 @@ function reasoningEffort(body: ResponsesRequest, model: ModelDefinition): string
       return "low";
     }
     if (effort === "minimal" || effort === "none") {
-      return "none";
+      return floorReasoningEffort("none", model);
     }
-    return glmDefaultReasoningEffort();
+    return floorReasoningEffort(glmDefaultReasoningEffort(), model);
   }
   if (effort === "low" || effort === "medium" || effort === "high" || effort === "max") {
     return effort;
@@ -671,6 +672,15 @@ function reasoningEffort(body: ResponsesRequest, model: ModelDefinition): string
     return "high";
   }
   return undefined;
+}
+
+/**
+ * Raise "none" to the model's minimum where its template mishandles it. GLM 5.3
+ * Flash emits its entire chain-of-thought into `content` at "none", ending with
+ * a stray `</think>`, so the user reads the reasoning as the answer.
+ */
+function floorReasoningEffort(effort: string, model: ModelDefinition): string {
+  return effort === "none" ? (minimumReasoningEffort(model.id) ?? effort) : effort;
 }
 
 /** Env-overridable default reasoning effort for GLM-5.2 (fast "none" by default). */

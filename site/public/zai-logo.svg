@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 447 447" role="img" aria-label="Z.ai">
+  <!--
+    Z.ai mark: rounded square with a knocked-out Z whose top and bottom bars
+    are cut at the diagonal's angle. Drawn as a single even-odd path so the Z
+    is a true knockout - the page background shows through, which keeps it
+    legible on both the dark landing page and a light surface.
+  -->
+  <path fill="currentColor" fill-rule="evenodd" d="
+    M84 4 h279 a80 80 0 0 1 80 80 v279 a80 80 0 0 1 -80 80 h-279 a80 80 0 0 1 -80 -80 v-279 a80 80 0 0 1 80 -80 z
+    M92 99 h163 l-33 51 h-130 z
+    M279 99 h81 l-193 247 h-81 z
+    M231 296 h129 v51 h-162 z
+  "/>
+</svg>

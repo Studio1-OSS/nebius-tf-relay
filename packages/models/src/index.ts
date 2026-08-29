@@ -141,15 +141,24 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
     order: 10,
     visionRank: 0, // vision flagship: primary for image description
   },
+  "zai-org/GLM-5.3-Flash": {
+    name: "GLM 5.3 Flash · default",
+    anthropicAlias: "nebius-glm-5-3-flash",
+    outputLimit: 131_072,
+    // The API reports 1,024,000 directly (no placeholder), but floor it so a
+    // catalog blip cannot silently shrink the window on the default model.
+    minContext: 1_024_000,
+    order: 0, // the default model
+  },
   "moonshotai/Kimi-K3": {
-    name: "Kimi K3 · default",
+    name: "Kimi K3",
     anthropicAlias: "nebius-kimi-k3",
     outputLimit: 131_072,
     // Nebius reports a placeholder 8000. Kimi K3's real window is 1M tokens
     // (Moonshot's model card and upstream both use 1,048,576); we previously
     // floored it at 262144, which made every harness compact ~4x too early.
     minContext: 1_048_576,
-    order: 0, // the default model
+    order: 1,
   },
   "moonshotai/Kimi-K2.7-Code": {
     name: "Kimi K2.7 Code",
@@ -209,7 +218,7 @@ const BUNDLED_FALLBACK_MODEL_IDS: ReadonlySet<string> = new Set([
  * K3's Nebius capacity can be flaky (occasional header/SSE-idle timeouts); the
  * 120s response-header timeout and reasoning cap mitigate it.
  */
-export const DEFAULT_MODEL_ID = "moonshotai/Kimi-K3";
+export const DEFAULT_MODEL_ID = "zai-org/GLM-5.3-Flash";
 
 /**
  * Nebius model ids verified to accept the OpenAI `reasoning_effort` parameter.
@@ -219,10 +228,29 @@ export const DEFAULT_MODEL_ID = "moonshotai/Kimi-K3";
  * the parameter, so it is only sent to ids in this set.
  */
 export const REASONING_EFFORT_MODEL_IDS: ReadonlySet<string> = new Set([
+  "zai-org/GLM-5.3-Flash",
   "zai-org/GLM-5.2",
   "moonshotai/Kimi-K2.6",
   "moonshotai/Kimi-K3",
 ]);
+
+/**
+ * Models whose chat template mishandles `reasoning_effort: "none"`.
+ *
+ * GLM 5.3 Flash still reasons at "none" but fails to route it to
+ * `reasoning_content`, emitting the whole chain-of-thought into `content`
+ * terminated by a stray `</think>` - so the user reads the model's private
+ * reasoning as if it were the answer. "low" is clean and actually spends FEWER
+ * reasoning tokens (11 vs 27 measured), so flooring costs nothing.
+ */
+const MIN_REASONING_EFFORT: Record<string, string> = {
+  "zai-org/GLM-5.3-Flash": "low",
+};
+
+/** The lowest `reasoning_effort` this model handles correctly, if constrained. */
+export function minimumReasoningEffort(modelId: string): string | undefined {
+  return MIN_REASONING_EFFORT[modelId];
+}
 
 /** Whether a model accepts the `reasoning_effort` parameter. */
 export function acceptsReasoningEffort(modelId: string): boolean {

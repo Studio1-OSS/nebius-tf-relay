@@ -134,7 +134,7 @@ describe("Codex App alpha config", () => {
     const first = catalog.models[0];
 
     expect(first).toBeDefined();
-    expect(first?.display_name).toBe("Kimi K3 · default");
+    expect(first?.display_name).toBe(getDefaultModel().name);
     expect(first?.shell_type).toBe("shell_command");
     // Reasoning models expose effort levels; non-reasoning models use "none".
     // Default to "minimal" (proxy maps it to no reasoning) so trivial turns stay
@@ -184,7 +184,9 @@ describe("Codex App alpha config", () => {
     // Per-model capability flags must be derived from the model definition,
     // not hardcoded off, so vision/tool-calling models are advertised correctly.
     expect(first?.supports_parallel_tool_calls).toBe(true);
-    expect(first?.supports_image_detail_original).toBe(false); // Kimi-K3 is text-only
+    // The default model is text-only, so it must not advertise image input.
+    expect(getDefaultModel().attachment).toBe(false);
+    expect(first?.supports_image_detail_original).toBe(false);
     expect(first?.input_modalities).toEqual(["text"]);
 
     // A vision-capable model in the catalog must advertise image input.

@@ -148,4 +148,19 @@ export const CATALOG_SNAPSHOT: readonly NebiusApiModel[] = [
       image: "0",
     },
   },
+  {
+    id: "zai-org/GLM-5.3-Flash",
+    name: "GLM-5.3-Flash",
+    description:
+      "Z.ai's GLM 5.3 Flash: fast, very low cost hybrid-reasoning open-weights model with a 1M context window and strong agentic tool use. The default model.",
+    context_length: 1024000,
+    architecture: {
+      modality: "text->text",
+    },
+    pricing: {
+      prompt: "0.00000015",
+      completion: "0.0000005",
+      image: "0",
+    },
+  },
 ];

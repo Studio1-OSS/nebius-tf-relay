@@ -6,6 +6,8 @@ const installCommand = "curl -fsSL https://nebius-tf-relay.vercel.app/install.sh
 const githubUrl = "https://github.com/shivaylamba/nebius-tf-relay";
 const docsUrl = "https://github.com/shivaylamba/nebius-tf-relay/blob/main/README.md";
 const nebiusApiKeysUrl = "https://tokenfactory.nebius.com/?modals=create-api-key";
+const glmFlashUrl =
+  "https://tokenfactory.nebius.com/endpoints?modals=endpoint-details&model-id=zai-org/GLM-5.3-Flash";
 const tavilyKeysUrl = "https://app.tavily.com";
 const llmsUrl = "/llms.txt";
 
@@ -148,7 +150,8 @@ const stats = [
 ];
 
 const modelHighlights = [
-  { name: "Kimi K3", note: "default coding" },
+  { name: "GLM 5.3 Flash", note: "default · 1M context" },
+  { name: "Kimi K3", note: "frontier coding" },
   { name: "Kimi K2.6", note: "vision" },
   { name: "DeepSeek V4 Flash", note: "fast 1M context" },
   { name: "DeepSeek V4 Pro", note: "long-context reasoning" },
@@ -247,6 +250,25 @@ function Home() {
 
         {/* HERO */}
         <section className="pt-14 pb-6 text-center max-[520px]:pt-10">
+          {/* New default model. Sits above the Nebius pill so the first thing
+              a visitor reads is what they get out of the box. */}
+          <a
+            href={glmFlashUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-3 inline-flex items-center gap-2 rounded-full border border-line-strong bg-white/80 py-1.5 pr-3.5 pl-3 text-[13px] font-medium text-muted shadow-[0_1px_2px_rgba(10,10,10,.04)] backdrop-blur transition hover:text-ink"
+          >
+            <span className="rounded-full bg-lime/70 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-ink uppercase">
+              New
+            </span>
+            <img src="/zai-logo.svg" alt="" aria-hidden="true" className="size-4 text-ink" />
+            <span className="text-ink">GLM 5.3 Flash</span>
+            is the new default
+            <span className="text-faint">·</span>
+            <span className="text-ink">1M context</span>
+            <ArrowUpRight />
+          </a>
+          <br />
           <a
             href={nebiusApiKeysUrl}
             target="_blank"
@@ -277,8 +299,9 @@ function Home() {
           </h1>
           <p className="mx-auto mt-6 mb-9 max-w-[600px] text-pretty text-[18.5px] leading-relaxed text-muted">
             A local relay that points Claude Code, Codex, OpenCode, Pi Code, and Prime Agent at open
-            models on Nebius Token Factory, including Kimi, Qwen, MiniMax, and DeepSeek V4, with
-            short commands and zero edits to your real tool config.
+            models on Nebius Token Factory. The new default is GLM 5.3 Flash, a 1M-context model
+            that runs about 20x cheaper than the previous default, with Kimi, Qwen, MiniMax, and
+            DeepSeek V4 a flag away and zero edits to your real tool config.
           </p>
 
           {/* dark install card: the focal surface */}
@@ -418,7 +441,7 @@ function Home() {
                 V4 models while regional catalogs catch up.
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
-                {["Kimi K3", "Kimi K2.6", "DeepSeek V4 Flash", "DeepSeek V4 Pro", "Qwen 3.5"].map(
+                {["GLM 5.3 Flash", "Kimi K3", "Kimi K2.6", "DeepSeek V4 Flash", "Qwen 3.5"].map(
                   (m) => (
                     <span
                       key={m}

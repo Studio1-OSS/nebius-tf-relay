@@ -97,20 +97,21 @@ nebiusrelay daemon uninstall  # stop starting it at login
 
 ## Models
 
-The model list is **fetched live** from Nebius (`GET /v1/models?verbose=true`) at startup, so every model Nebius serves is available and each model's vision support comes straight from the API's modality field, never a hand-maintained list. Results are cached in `~/.nebiusrelay/` and fall back to a bundled snapshot when offline. The default coding model is **Kimi K3**; switch inside your agent or with `--model`.
+The model list is **fetched live** from Nebius (`GET /v1/models?verbose=true`) at startup, so every model Nebius serves is available and each model's vision support comes straight from the API's modality field, never a hand-maintained list. Results are cached in `~/.nebiusrelay/` and fall back to a bundled snapshot when offline. The default coding model is **GLM 5.3 Flash** (Z.ai) - a 1M-context hybrid reasoner priced at $0.15/$0.50 per M, roughly 20x cheaper on input than the previous Kimi K3 default; switch inside your agent or with `--model`.
 
 Featured flagships:
 
-| Model                   | Best for                  | Context | Vision |
-| ----------------------- | ------------------------- | ------- | ------ |
-| **Kimi K3** _(default)_ | General coding + agentic  | 262K    | No     |
-| Kimi K2.6               | Vision flagship           | 262K    | Yes    |
-| Kimi K2.7 Code          | Coding                    | 262K    | No     |
-| MiniMax M3              | Fast, cheap               | 196K    | No     |
-| Qwen 3.5 397B           | General / coding flagship | 262K    | No     |
-| DeepSeek V4 Flash       | Fast DeepSeek V4          | 1M      | No     |
-| DeepSeek V4 Pro         | Long-context reasoning    | 1M      | No     |
-| Qwen2.5-VL 72B          | Vision fallback           | 32K     | Yes    |
+| Model                         | Best for                     | Context | Vision |
+| ----------------------------- | ---------------------------- | ------- | ------ |
+| **GLM 5.3 Flash** _(default)_ | Fast, very low cost, agentic | 1M      | No     |
+| Kimi K3                       | Frontier coding + agentic    | 1M      | No     |
+| Kimi K2.6                     | Vision flagship              | 262K    | Yes    |
+| Kimi K2.7 Code                | Coding                       | 262K    | No     |
+| MiniMax M3                    | Fast, cheap                  | 196K    | No     |
+| Qwen 3.5 397B                 | General / coding flagship    | 262K    | No     |
+| DeepSeek V4 Flash             | Fast DeepSeek V4             | 1M      | No     |
+| DeepSeek V4 Pro               | Long-context reasoning       | 1M      | No     |
+| Qwen2.5-VL 72B                | Vision fallback              | 32K     | Yes    |
 
 Claude Code and Codex are text-native; image blocks are auto-routed to a vision-capable model (Kimi K2.6, then Qwen2.5-VL). OpenCode uses a dedicated `@vision` subagent pinned to the vision flagship. Run `scripts/list-nebius-models.mjs` (with `NEBIUS_API_KEY` set) to print the raw catalog Nebius serves.
 

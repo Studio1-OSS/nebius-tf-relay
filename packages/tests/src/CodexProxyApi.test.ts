@@ -566,8 +566,8 @@ describe("Codex Responses proxy tool compatibility", () => {
     const catalog = await getModels();
     const first = catalog.models?.[0] as Record<string, unknown> | undefined;
 
-    expect(first?.slug).toBe("moonshotai/Kimi-K3");
-    expect(first?.display_name).toBe("Kimi K3 · default");
+    expect(first?.slug).toBe(getDefaultModel().id);
+    expect(first?.display_name).toBe(getDefaultModel().name);
     expect(first?.default_reasoning_level).toBe("minimal");
     expect(first?.default_reasoning_summary).toBe("auto");
     expect(first?.model_messages).toEqual(

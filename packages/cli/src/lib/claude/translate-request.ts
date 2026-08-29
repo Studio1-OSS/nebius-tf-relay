@@ -1,4 +1,8 @@
-import { acceptsReasoningEffort, type ModelDefinition } from "@nebiusrelay/models";
+import {
+  acceptsReasoningEffort,
+  minimumReasoningEffort,
+  type ModelDefinition,
+} from "@nebiusrelay/models";
 import {
   nativeToolMaxUses as sharedNativeToolMaxUses,
   runWebSearchDetailed as runSharedWebSearchDetailed,
@@ -68,12 +72,28 @@ export function nebiusReasoningEffort(
     body.reasoning_effort ?? body.effort ?? body.thinking?.effort,
   );
   if (explicitEffort) {
-    return explicitEffort;
+    return applyEffortFloor(explicitEffort, targetModel);
   }
 
   // Otherwise keep turns fast: send an explicit low/no effort so GLM-5.2 does
   // not fall back to reasoning on every turn.
-  return defaultReasoningEffort();
+  return applyEffortFloor(defaultReasoningEffort(), targetModel);
+}
+
+/**
+ * Raise "none" to a model's minimum when its template mishandles it. GLM 5.3
+ * Flash leaks its whole chain-of-thought into `content` at "none" (see
+ * minimumReasoningEffort), which the user then reads as the answer.
+ */
+function applyEffortFloor(
+  effort: NebiusReasoningEffort,
+  targetModel: ModelDefinition,
+): NebiusReasoningEffort {
+  if (effort !== "none") {
+    return effort;
+  }
+  const floor = minimumReasoningEffort(targetModel.id);
+  return (floor as NebiusReasoningEffort | undefined) ?? effort;
 }
 
 function normalizeNebiusReasoningEffort(value: unknown): NebiusReasoningEffort | undefined {
