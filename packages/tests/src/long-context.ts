@@ -10,25 +10,26 @@ export function makeLongRecords(count: number, finalToken: string): string {
 }
 
 /**
- * How many filler records are needed to overflow a model's context window.
+ * How many filler records make `prompt + max_output_tokens` exceed the model's
+ * context window - while keeping the prompt itself comfortably inside it.
  *
- * The two context-limit gauntlet tests used to hardcode 1,650 records, a number
- * calibrated when GLM-5.2 had a 262K window. Nebius later raised it to 1M, the
- * payload stopped overflowing, the retry under test never fired, and the
- * assertion failed - the test rotted the moment a provider changed a number we
- * did not control. Derive it instead.
+ * That distinction is the whole test. The proxy recovers by clamping
+ * max_tokens, so the prompt must still fit; a prompt that is itself larger than
+ * the window is unrecoverable and the request simply 400s.
  *
- * `overshoot` pushes comfortably past the limit so the test is not sitting on
- * the boundary of the estimator's accuracy.
+ * This used to be a hardcoded 1,650, calibrated when GLM-5.2 had a 262K window.
+ * Nebius raised it to 1M, the payload stopped overflowing, and the retry under
+ * test quietly stopped firing while the assertion still claimed to check it.
  */
-export function recordsToOverflow(
-  contextTokens: number,
-  maxOutputTokens: number,
-  overshoot = 1.35,
-): number {
+export function recordsToOverflow(contextTokens: number, maxOutputTokens: number): number {
   const RECORD_CHARS = 370; // one record from makeLongRecords
   const CHARS_PER_TOKEN = 4; // matches the proxy's own estimator
-  const budget = Math.max(0, contextTokens - maxOutputTokens);
-  const needTokens = Math.ceil(budget * overshoot) + 1_000;
-  return Math.max(1_650, Math.ceil((needTokens * CHARS_PER_TOKEN) / RECORD_CHARS));
+  // 92% of the window: over the limit once max_output is added, under it alone.
+  const promptTokens = Math.floor(contextTokens * 0.92);
+  if (promptTokens + maxOutputTokens <= contextTokens) {
+    throw new Error(
+      `max_output_tokens ${maxOutputTokens} is too small to overflow a ${contextTokens}-token window`,
+    );
+  }
+  return Math.ceil((promptTokens * CHARS_PER_TOKEN) / RECORD_CHARS);
 }
