@@ -10,17 +10,18 @@ import { findModelById } from "@nebiusrelay/models";
 import { initModelCatalog } from "../../cli/src/lib/model-catalog-init.js";
 import type { TestContext } from "./types.js";
 
+/** The default model: a 1M window, and the cheapest input on the catalog. */
+const CONTEXT_TEST_MODEL = "zai-org/GLM-5.3-Flash";
+
 export async function assertClaudeContextLimitRetry(context: TestContext): Promise<void> {
+  const plan = await overflowPlan(CONTEXT_TEST_MODEL);
   const daemon = await startTestDaemon(context);
   const token = await registerClaudeSession(context, daemon);
   try {
     const prompt = [
       "This request intentionally exceeds the model context window when paired with the requested max_tokens.",
       "If the proxy retries correctly with a reduced max_tokens value, answer exactly: CONTEXT_RETRY_OK",
-      makeLongRecords(
-        await overflowRecords("zai-org/GLM-5.2", 164_000),
-        "CLAUDE_CONTEXT_RETRY_FINAL",
-      ),
+      makeLongRecords(plan.records, "CLAUDE_CONTEXT_RETRY_FINAL"),
     ].join("\n\n");
     const response = await fetch(`${daemon.url}/v1/messages`, {
       method: "POST",
@@ -29,8 +30,8 @@ export async function assertClaudeContextLimitRetry(context: TestContext): Promi
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "nebius-glm-5-2",
-        max_tokens: 164000,
+        model: "nebius-glm-5-3-flash",
+        max_tokens: plan.maxTokens,
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -59,16 +60,14 @@ export async function assertClaudeContextLimitRetry(context: TestContext): Promi
 }
 
 export async function assertCodexContextLimitRetry(context: TestContext): Promise<void> {
+  const plan = await overflowPlan(CONTEXT_TEST_MODEL);
   const daemon = await startTestDaemon(context);
   const token = await registerCodexSession(context, daemon);
   try {
     const prompt = [
       "This Responses request intentionally exceeds the model context window when paired with the requested max_output_tokens.",
       "If the proxy retries correctly with a reduced max_tokens value, answer exactly: CODEX_CONTEXT_RETRY_OK",
-      makeLongRecords(
-        await overflowRecords("zai-org/GLM-5.2", 164_000),
-        "CODEX_CONTEXT_RETRY_FINAL",
-      ),
+      makeLongRecords(plan.records, "CODEX_CONTEXT_RETRY_FINAL"),
     ].join("\n\n");
     const response = await fetch(`${daemon.url}/v1/responses`, {
       method: "POST",
@@ -77,8 +76,8 @@ export async function assertCodexContextLimitRetry(context: TestContext): Promis
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "zai-org/GLM-5.2",
-        max_output_tokens: 164000,
+        model: CONTEXT_TEST_MODEL,
+        max_output_tokens: plan.maxTokens,
         input: [{ type: "message", role: "user", content: [{ type: "input_text", text: prompt }] }],
       }),
     });
@@ -110,9 +109,12 @@ export async function assertCodexContextLimitRetry(context: TestContext): Promis
  * hardcoded payload stopped overflowing, and the retry under test silently
  * stopped firing while the assertion still claimed to check it.
  */
-async function overflowRecords(modelId: string, maxOutputTokens: number): Promise<number> {
+async function overflowPlan(modelId: string): Promise<{ records: number; maxTokens: number }> {
   await initModelCatalog({});
   const model = findModelById(modelId);
   assert(model !== undefined, `context-limit test needs ${modelId} in the catalog`);
-  return recordsToOverflow(model.limit.context, maxOutputTokens);
+  // Ask for the model's full output allowance - that is what pushes the request
+  // over the window once the prompt is added, and it is what the proxy clamps.
+  const maxTokens = model.limit.output;
+  return { records: recordsToOverflow(model.limit.context, maxTokens), maxTokens };
 }
