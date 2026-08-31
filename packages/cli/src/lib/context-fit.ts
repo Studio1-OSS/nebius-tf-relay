@@ -20,6 +20,8 @@ export const APPROX_CHARS_PER_TOKEN = 4;
 
 const CONTEXT_LENGTH_RETRY_FLOOR = 1;
 const CONTEXT_OUTPUT_SAFETY_TOKENS = 512;
+/** Ceiling on the adaptive margin, so it can never starve the request. */
+const MAX_SAFETY_FRACTION = 0.2;
 const CONTEXT_RETRY_TRIM_EXTRA_TOKENS = 512;
 const TRIM_PRESERVED_PREFIX_CHARS = 4096;
 /** Minimum output room worth preserving before we start trimming input. */
@@ -415,19 +417,25 @@ export function applyContextFit(
   const { inputTokens, contextTokens } = overflow;
   const base = { inputTokens, contextWindow: contextTokens };
 
-  // Widen the margin on every successive overflow for this request.
+  // Widen the margin geometrically on every successive overflow.
   //
-  // Our token figures are estimates (the client counts bytes, the backend counts
-  // real tokens) and the two providers disagree about the window itself - Nebius
-  // advertises 1,024,000 for GLM 5.3 Flash while the serving backend enforces
-  // 262,144. A fixed margin can therefore land just over the line and stay
-  // there: observed 131,072 out + 131,073 in = 262,145 against a 262,144 limit,
-  // then 54,923 + 207,222 = 262,145 again. Exactly one token over, twice.
+  // Nebius reports LOWER BOUNDS, not counts: "your prompt contains at least
+  // 141831 input tokens, for a total of at least 262145 tokens" - the backend
+  // stops counting once it knows the request is over, so the total it quotes is
+  // always ceiling+1 whatever the real size. Arithmetic derived from those
+  // numbers therefore under-trims by an unknown amount, and observed retries
+  // landed exactly one token over again and again:
+  //   131,072 out + 131,073 in = 262,145
+  //   120,314 out + 141,831 in = 262,145   (limit 262,144)
   //
-  // Growing the margin makes each attempt strictly smaller than the last, so the
-  // ladder converges instead of retrying the same near-miss until it gives up.
+  // A margin that only grows linearly can lose that race. Doubling it each
+  // attempt covers an error of unknown size within the attempt budget while
+  // still asking for a usable amount of output on the first try.
   state.attempts += 1;
-  const safetyTokens = CONTEXT_OUTPUT_SAFETY_TOKENS * state.attempts;
+  const safetyTokens = Math.min(
+    CONTEXT_OUTPUT_SAFETY_TOKENS * 2 ** (state.attempts - 1),
+    Math.floor(contextTokens * MAX_SAFETY_FRACTION),
+  );
 
   // Rung 1: input alone fits - the request is over only because of the
   // requested output. Clamp max_tokens and keep every token of context.

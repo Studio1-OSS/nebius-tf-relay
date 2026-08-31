@@ -45,9 +45,11 @@ describe("context-fit convergence", () => {
       asked.push(payload.max_tokens as number);
     }
 
-    // Strictly decreasing - the bug was that this stayed flat.
+    // Strictly decreasing, and by a widening step - Nebius reports lower
+    // bounds, so a linear margin can lose the race against an unknown error.
     expect(asked[1]!).toBeLessThan(asked[0]!);
     expect(asked[2]!).toBeLessThan(asked[1]!);
+    expect(asked[0]! - asked[1]!).toBeLessThan(asked[1]! - asked[2]!);
   });
 
   test("the clamped request actually fits inside the reported ceiling", () => {
