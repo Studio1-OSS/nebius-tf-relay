@@ -103,7 +103,21 @@ export function parseNebiusContextLengthInputTokens(message: string): number | u
   // Nebius: "...993141 tokens from the input messages and 131072 tokens for
   // the completion." Pairs with the "maximum context length of" ceiling above.
   const fromInputMatch = message.match(/([\d,_]+)\s+tokens from the input messages\b/is);
-  return parseTokenCount(fromInputMatch?.[1]);
+  if (fromInputMatch) {
+    return parseTokenCount(fromInputMatch[1]);
+  }
+  // Nebius's other phrasing: "...your prompt contains at least 131073 input
+  // tokens...". Without this the ceiling parsed but the input count did not, so
+  // the ladder fell back to its own byte estimate - which reads low, so the
+  // clamp stayed too generous and every retry landed a token or two over.
+  const atLeastMatch = message.match(/prompt contains at least\s+([\d,_]+)\s+input tokens\b/is);
+  if (atLeastMatch) {
+    return parseTokenCount(atLeastMatch[1]);
+  }
+  // Same error also carries a machine-readable tail: "(parameter=input_tokens,
+  // value=131073)". Cheapest exact source when the prose changes again.
+  const paramMatch = message.match(/parameter=input_tokens,\s*value=([\d,_]+)/is);
+  return parseTokenCount(paramMatch?.[1]);
 }
 
 function parseTokenCount(value: string | undefined): number | undefined {
@@ -346,6 +360,8 @@ export type ContextFitState = {
   originalChars: number;
   freedChars: number;
   originalMaxTokens?: number;
+  /** How many times we have already been handed an overflow for this request. */
+  attempts: number;
 };
 
 export type ContextFitOutcome = {
@@ -365,6 +381,7 @@ export function newContextFitState(payload: Record<string, unknown>): ContextFit
   return {
     originalChars: jsonByteLength(payload.messages ?? []),
     freedChars: 0,
+    attempts: 0,
     ...(originalMaxTokens !== undefined ? { originalMaxTokens } : {}),
   };
 }
@@ -398,9 +415,23 @@ export function applyContextFit(
   const { inputTokens, contextTokens } = overflow;
   const base = { inputTokens, contextWindow: contextTokens };
 
+  // Widen the margin on every successive overflow for this request.
+  //
+  // Our token figures are estimates (the client counts bytes, the backend counts
+  // real tokens) and the two providers disagree about the window itself - Nebius
+  // advertises 1,024,000 for GLM 5.3 Flash while the serving backend enforces
+  // 262,144. A fixed margin can therefore land just over the line and stay
+  // there: observed 131,072 out + 131,073 in = 262,145 against a 262,144 limit,
+  // then 54,923 + 207,222 = 262,145 again. Exactly one token over, twice.
+  //
+  // Growing the margin makes each attempt strictly smaller than the last, so the
+  // ladder converges instead of retrying the same near-miss until it gives up.
+  state.attempts += 1;
+  const safetyTokens = CONTEXT_OUTPUT_SAFETY_TOKENS * state.attempts;
+
   // Rung 1: input alone fits - the request is over only because of the
   // requested output. Clamp max_tokens and keep every token of context.
-  const availableOutput = contextTokens - inputTokens - CONTEXT_OUTPUT_SAFETY_TOKENS;
+  const availableOutput = contextTokens - inputTokens - safetyTokens;
   const currentMaxTokens = typeof payload.max_tokens === "number" ? payload.max_tokens : undefined;
   const desiredMaxTokens = Math.min(
     state.originalMaxTokens ?? currentMaxTokens ?? model.limit.output,
@@ -420,7 +451,7 @@ export function applyContextFit(
   if (currentMaxTokens !== desiredMaxTokens) {
     payload.max_tokens = desiredMaxTokens;
   }
-  const targetInputTokens = contextTokens - desiredMaxTokens - CONTEXT_OUTPUT_SAFETY_TOKENS;
+  const targetInputTokens = contextTokens - desiredMaxTokens - safetyTokens;
   const tokensToFree =
     Math.max(1, inputTokens - targetInputTokens) + CONTEXT_RETRY_TRIM_EXTRA_TOKENS;
   const payloadBytes = jsonByteLength({

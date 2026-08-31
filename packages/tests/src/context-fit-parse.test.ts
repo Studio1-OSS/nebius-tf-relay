@@ -49,3 +49,27 @@ describe("Nebius context-length error", () => {
     expect(parseNebiusContextLengthInputTokens(other)).toBeUndefined();
   });
 });
+
+/**
+ * The ceiling parsed from this one but the input count did not, so the ladder
+ * fell back to a byte estimate that read low - the clamp stayed too generous
+ * and every retry landed a token over. Both numbers must come from the error.
+ */
+describe("Nebius 'prompt contains at least N input tokens' phrasing", () => {
+  const MSG =
+    "This model's maximum context length is 262144 tokens. However, you requested " +
+    "131072 output tokens and your prompt contains at least 131073 input tokens, for a " +
+    "total of at least 262145 tokens. Please reduce the length of the input prompt or " +
+    "the number of requested output tokens. (parameter=input_tokens, value=131073)";
+
+  test("both the ceiling and the input count are read", () => {
+    expect(parseNebiusContextLengthMaxTokens(MSG)).toBe(262_144);
+    expect(parseNebiusContextLengthInputTokens(MSG)).toBe(131_073);
+  });
+
+  test("the machine-readable tail works on its own", () => {
+    expect(parseNebiusContextLengthInputTokens("(parameter=input_tokens, value=99999)")).toBe(
+      99_999,
+    );
+  });
+});
