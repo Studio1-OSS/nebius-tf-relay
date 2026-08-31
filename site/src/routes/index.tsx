@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 const installCommand = "curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh";
-const githubUrl = "https://github.com/shivaylamba/nebius-tf-relay";
-const docsUrl = "https://github.com/shivaylamba/nebius-tf-relay/blob/main/README.md";
+const githubUrl = "https://github.com/Studio1-OSS/nebius-tf-relay";
+const docsUrl = "https://github.com/Studio1-OSS/nebius-tf-relay/blob/main/README.md";
 const nebiusApiKeysUrl = "https://tokenfactory.nebius.com/?modals=create-api-key";
 const glmFlashUrl =
   "https://tokenfactory.nebius.com/endpoints?modals=endpoint-details&model-id=zai-org/GLM-5.3-Flash";

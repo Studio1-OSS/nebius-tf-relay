@@ -6,11 +6,11 @@ nebiusrelay is an MIT-licensed CLI router. Install once, then launch your agent 
 
 This is the LLM-readable documentation file for the project. If you are an AI agent asked to install, configure, or use nebiusrelay (headless or interactive), read this file first. It covers installation, configuration, every command, the available models, headless/agentic usage patterns, how to keep the tool up to date, and the routing architecture.
 
-- Project: https://github.com/shivaylamba/nebius-tf-relay
+- Project: https://github.com/Studio1-OSS/nebius-tf-relay
 - Website: https://nebius-tf-relay.vercel.app
 - Installer: https://nebius-tf-relay.vercel.app/install.sh
 - Version manifest: https://nebius-tf-relay.vercel.app/latest.json
-- README: https://github.com/shivaylamba/nebius-tf-relay/blob/main/README.md
+- README: https://github.com/Studio1-OSS/nebius-tf-relay/blob/main/README.md
 - This file: https://nebius-tf-relay.vercel.app/llms.txt
 
 ## Install
