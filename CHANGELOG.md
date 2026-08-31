@@ -3,6 +3,22 @@
 User-visible changes to Nebius TF Relay, newest first. This changelog starts at
 0.14.0; earlier release history remains in Git.
 
+## 0.15.2 - 2026-09-01
+
+### Fixed
+
+- Long contexts recover instead of failing. 0.15.1 taught the retry to read
+  Nebius's error, but it still could not land: the "input tokens" figure in that
+  error is not measured, it is back-computed from the `max_tokens` you sent.
+  Every observed case satisfied `reported_input = ceiling + 1 - requested_output`
+  exactly, so as the retry clamped output the reported input grew to match and
+  the request looked like a near-miss forever. The relay now prefers its own
+  measurement of the payload whenever that is larger, and widens its safety
+  margin on each attempt so the ladder converges rather than re-trying the same
+  near-miss until it gives up.
+- A second Nebius phrasing is understood: `your prompt contains at least N input
+tokens`, plus the machine-readable `(parameter=input_tokens, value=N)` tail.
+
 ## 0.15.1 - 2026-08-31
 
 ### Fixed

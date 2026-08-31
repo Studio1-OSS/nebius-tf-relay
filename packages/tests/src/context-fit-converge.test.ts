@@ -8,9 +8,10 @@ import {
 import { GLM_5_2 } from "../../models/src/index.js";
 
 /**
- * Nebius advertises 1,024,000 context for GLM 5.3 Flash while the serving
- * backend enforces 262,144. With a fixed safety margin the retry ladder landed
- * exactly one token over the limit and stayed there - observed live as
+ * A failed request falls back to another model, and the replacement can have a
+ * much smaller window - observed live, a GLM 5.3 Flash turn fell back to Kimi
+ * K2.6 and overflowed against its 262,144 ceiling. With a fixed safety margin
+ * the ladder then landed exactly one token over and stayed there:
  * 131,072 out + 131,073 in = 262,145, then 54,923 + 207,222 = 262,145 again.
  * It burned every attempt on the same near-miss and surfaced a 500.
  *

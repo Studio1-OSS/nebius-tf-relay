@@ -154,8 +154,8 @@ export function contextLengthOverflow(
   //   reported_input === contextTokens + 1 - requested_output
   // exactly (131073/131072, 141831/120314, 163335/98810, 238971/23174), so the
   // number tells us nothing about the prompt. Trusting it made the ladder think
-  // it was a few thousand tokens over when the prompt was 3.6x the window, so
-  // it trimmed almost nothing and burned every attempt.
+  // it was a few thousand tokens over when the prompt was several times the
+  // serving window, so it trimmed almost nothing and burned every attempt.
   //
   // Our own byte-derived estimate is crude but it actually measures the payload,
   // so take whichever is larger: the reported value is at best a lower bound.
@@ -437,18 +437,16 @@ export function applyContextFit(
 
   // Widen the margin geometrically on every successive overflow.
   //
-  // Nebius reports LOWER BOUNDS, not counts: "your prompt contains at least
-  // 141831 input tokens, for a total of at least 262145 tokens" - the backend
-  // stops counting once it knows the request is over, so the total it quotes is
-  // always ceiling+1 whatever the real size. Arithmetic derived from those
-  // numbers therefore under-trims by an unknown amount, and observed retries
-  // landed exactly one token over again and again:
-  //   131,072 out + 131,073 in = 262,145
-  //   120,314 out + 141,831 in = 262,145   (limit 262,144)
+  // The ceiling in an overflow is whatever model actually served the request,
+  // which is not always the one we asked for: a failed request falls back (see
+  // withModelFallback), and the replacement can have a much smaller window.
+  // Observed live - a GLM 5.3 Flash turn fell back to Kimi K2.6 and overflowed
+  // against its 262,144 ceiling, not Flash's.
   //
-  // A margin that only grows linearly can lose that race. Doubling it each
-  // attempt covers an error of unknown size within the attempt budget while
-  // still asking for a usable amount of output on the first try.
+  // Combined with an input figure we cannot trust (below), a fixed margin can
+  // land just over the line and stay there. Doubling it each attempt covers an
+  // error of unknown size within the attempt budget, while the first attempt
+  // still asks for the full output it can have.
   state.attempts += 1;
   const safetyTokens = Math.min(
     CONTEXT_OUTPUT_SAFETY_TOKENS * 2 ** (state.attempts - 1),
