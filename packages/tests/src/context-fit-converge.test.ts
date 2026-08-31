@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   applyContextFit,
+  contextLengthOverflow,
   newContextFitState,
   CONTEXT_FIT_MAX_ATTEMPTS,
 } from "../../cli/src/lib/context-fit.js";
@@ -77,5 +78,35 @@ describe("context-fit convergence", () => {
       applyContextFit(payload, overflowError(131_073, 131_072), GLM_5_2, state);
     }
     expect(payload.max_tokens as number).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * Nebius's "input tokens" figure is back-computed from the max_tokens we sent,
+ * not measured. Every observed case satisfied
+ *   reported === ceiling + 1 - requested_output
+ * so a huge prompt looks like a near-miss and the trimmer barely moves. It has
+ * to prefer its own measurement of the payload when that is larger.
+ */
+describe("a fabricated input figure does not fool the trimmer", () => {
+  test("the measured payload wins over the reported lower bound", () => {
+    // ~400k chars of messages -> ~100k tokens, far above the 1,073 "reported".
+    const payload: Record<string, unknown> = {
+      max_tokens: 261_072,
+      messages: [{ role: "user", content: "x".repeat(400_000) }],
+    };
+    const message =
+      "This model's maximum context length is 262144 tokens. However, you requested " +
+      "261072 output tokens and your prompt contains at least 1073 input tokens, for a " +
+      "total of at least 262145 tokens.";
+
+    const withPayload = contextLengthOverflow(message, GLM_5_2, payload);
+    expect(withPayload).toBeDefined();
+    // Not the fabricated 1,073.
+    expect(withPayload!.inputTokens).toBeGreaterThan(50_000);
+
+    // Without the payload there is nothing to compare against, so the reported
+    // value stands - that is the old, foolable behaviour.
+    expect(contextLengthOverflow(message, GLM_5_2)!.inputTokens).toBe(1_073);
   });
 });

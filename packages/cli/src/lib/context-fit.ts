@@ -141,13 +141,31 @@ export type ContextOverflow = { inputTokens: number; contextTokens: number };
 export function contextLengthOverflow(
   message: string,
   model: ModelDefinition,
+  payload?: Record<string, unknown>,
 ): ContextOverflow | undefined {
-  const inputTokens = parseNebiusContextLengthInputTokens(message);
-  if (inputTokens === undefined) {
+  const reported = parseNebiusContextLengthInputTokens(message);
+  if (reported === undefined) {
     return undefined;
   }
   const contextTokens = parseNebiusContextLengthMaxTokens(message) ?? model.limit.context;
-  return { inputTokens, contextTokens };
+
+  // Nebius's "input tokens" figure is not measured - it is back-computed from
+  // the max_tokens we asked for. Every observed case satisfies
+  //   reported_input === contextTokens + 1 - requested_output
+  // exactly (131073/131072, 141831/120314, 163335/98810, 238971/23174), so the
+  // number tells us nothing about the prompt. Trusting it made the ladder think
+  // it was a few thousand tokens over when the prompt was 3.6x the window, so
+  // it trimmed almost nothing and burned every attempt.
+  //
+  // Our own byte-derived estimate is crude but it actually measures the payload,
+  // so take whichever is larger: the reported value is at best a lower bound.
+  const estimated = payload ? estimateInputTokens(payload) : 0;
+  return { inputTokens: Math.max(reported, estimated), contextTokens };
+}
+
+/** Rough input size from the payload itself, in tokens. */
+function estimateInputTokens(payload: Record<string, unknown>): number {
+  return Math.ceil(jsonByteLength(payload.messages ?? []) / APPROX_CHARS_PER_TOKEN);
 }
 
 // --------------------------------------------------------------------------
@@ -404,7 +422,7 @@ export function applyContextFit(
   model: ModelDefinition,
   state: ContextFitState,
 ): ContextFitOutcome {
-  const overflow = contextLengthOverflow(message, model);
+  const overflow = contextLengthOverflow(message, model, payload);
   if (!overflow) {
     return {
       mutated: false,
