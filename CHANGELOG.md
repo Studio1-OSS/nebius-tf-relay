@@ -7,10 +7,10 @@ User-visible changes to Nebius TF Relay, newest first. This changelog starts at
 
 ### Fixed
 
-- Context overflow now recovers instead of failing the turn. Nebius phrases the
-  error as `maximum context length of N tokens` with `N tokens from the input
-messages`; the parser recognised neither, so the reactive context-fit retry
-  could not read the ceiling and gave up. Any turn that exceeded the window
+- Context overflow now recovers instead of failing the turn. Nebius phrases its
+  error with "of" and "from the input messages"; the parser recognised neither
+  wording, so the reactive context-fit retry could not read the ceiling and gave
+  up. Any turn that exceeded the window
   returned a hard 500 where the proxy should have clamped `max_tokens` and
   retried silently. All four known phrasings (Nebius, vLLM, Kimi/Moonshot
   parenthetical, and `request resolved to`) are now pinned by tests.
