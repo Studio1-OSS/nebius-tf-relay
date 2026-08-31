@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node scripts/run-vitest.mjs",
     "test:offline": "vitest run --config vitest.config.ts --exclude '**/Claude.test.ts' --exclude '**/Codex.test.ts' --exclude '**/OpenCode.test.ts' --exclude '**/Pi.test.ts' --exclude '**/livemodelscheck.test.ts' --exclude '**/daemon-session-auth.test.ts' --exclude '**/LiveSmoke.test.ts' --exclude '**/LiveCodexResume.test.ts'",
     "test:live-smoke": "NEBIUSRELAY_LIVE_SMOKE=1 node scripts/run-vitest.mjs src/LiveSmoke.test.ts",

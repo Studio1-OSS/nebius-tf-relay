@@ -7,6 +7,7 @@ import {
   MINIMAX_M3,
   QWEN_2_5_VL_72B,
   QWEN_3_5_397B,
+  NEBIUS_BASE_URL,
 } from "@nebiusrelay/models";
 import { handleCodexProxyRequest, type CodexProxyOptions } from "../../cli/src/lib/codex/proxy.js";
 
@@ -14,6 +15,7 @@ const realFetch = globalThis.fetch.bind(globalThis);
 
 const options: CodexProxyOptions = {
   apiKey: "test-together-key",
+  baseUrl: NEBIUS_BASE_URL,
   modelId: GLM_5_2.id,
   targetModelId: GLM_5_2.id,
   modelName: GLM_5_2.name,

@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 import { Readable } from "node:stream";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { GLM_5_2, type ModelDefinition } from "../../models/src/index.js";
+import { GLM_5_2, NEBIUS_BASE_URL, type ModelDefinition } from "../../models/src/index.js";
 import {
   buildClaudeEnv,
   buildClaudeLaunchArgs,
@@ -46,6 +46,7 @@ describe("Claude proxy compatibility API", () => {
 
     const env = buildClaudeEnv({
       apiKey: "test-nebius-key",
+      baseUrl: NEBIUS_BASE_URL,
       modelId: GLM_5_2.anthropicAlias ?? GLM_5_2.id,
       modelName: GLM_5_2.name,
       proxyUrl: "http://127.0.0.1:7878/session/test",
@@ -60,6 +61,7 @@ describe("Claude proxy compatibility API", () => {
 
     const env = buildClaudeEnv({
       apiKey: "test-nebius-key",
+      baseUrl: NEBIUS_BASE_URL,
       modelId: GLM_5_2.anthropicAlias ?? GLM_5_2.id,
       modelName: GLM_5_2.name,
       proxyUrl: "http://127.0.0.1:7878/session/test",
@@ -430,6 +432,7 @@ describe("Claude proxy compatibility API", () => {
     try {
       const env = buildClaudeEnv({
         apiKey: "test-together-key",
+        baseUrl: NEBIUS_BASE_URL,
         modelId: GLM_5_2.anthropicAlias ?? GLM_5_2.id,
         modelName: GLM_5_2.name,
         proxyUrl: "http://127.0.0.1:7878/session/test",
@@ -454,6 +457,7 @@ describe("Claude proxy compatibility API", () => {
 
     const env = buildClaudeEnv({
       apiKey: "test-together-key",
+      baseUrl: NEBIUS_BASE_URL,
       modelId: GLM_5_2.anthropicAlias ?? GLM_5_2.id,
       modelName: GLM_5_2.name,
       proxyUrl: "http://127.0.0.1:7878/session/test",
@@ -1913,6 +1917,7 @@ function hangingSseResponse(chunks: unknown[] = []): Response {
 function proxyOptions(overrides: Partial<ClaudeProxyOptions> = {}): ClaudeProxyOptions {
   return {
     apiKey: "test-together-key",
+    baseUrl: NEBIUS_BASE_URL,
     modelId: GLM_5_2.anthropicAlias ?? GLM_5_2.id,
     targetModelId: GLM_5_2.id,
     modelName: GLM_5_2.name,
