@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 const installCommand = "curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh";
 const githubUrl = "https://github.com/Studio1-OSS/nebius-tf-relay";
-const docsUrl = "https://github.com/Studio1-OSS/nebius-tf-relay/blob/main/README.md";
+const docsUrl = "/docs";
 const nebiusApiKeysUrl = "https://tokenfactory.nebius.com/?modals=create-api-key";
 const glmFlashUrl =
   "https://tokenfactory.nebius.com/endpoints?modals=endpoint-details&model-id=zai-org/GLM-5.3-Flash";
@@ -223,8 +223,6 @@ function Home() {
             <a
               className="hidden rounded-lg px-3 py-2 transition hover:bg-code hover:text-ink sm:block"
               href={docsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
             >
               Docs
             </a>
@@ -537,12 +535,7 @@ function Home() {
             <span className="font-semibold text-ink">Nebius TF Relay</span>
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 sm:ml-auto">
-            <a
-              className="transition hover:text-ink"
-              href={docsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a className="transition hover:text-ink" href={docsUrl}>
               Docs
             </a>
             <a

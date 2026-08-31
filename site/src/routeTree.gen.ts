@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DocsRouteImport } from './routes/docs'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTelemetryRouteImport } from './routes/api/telemetry'
 
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -32,35 +38,46 @@ const ApiTelemetryRoute = ApiTelemetryRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/docs': typeof DocsRoute
   '/api/telemetry': typeof ApiTelemetryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/docs': typeof DocsRoute
   '/api/telemetry': typeof ApiTelemetryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/docs': typeof DocsRoute
   '/api/telemetry': typeof ApiTelemetryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/api/telemetry'
+  fullPaths: '/' | '/dashboard' | '/docs' | '/api/telemetry'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/api/telemetry'
-  id: '__root__' | '/' | '/dashboard' | '/api/telemetry'
+  to: '/' | '/dashboard' | '/docs' | '/api/telemetry'
+  id: '__root__' | '/' | '/dashboard' | '/docs' | '/api/telemetry'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  DocsRoute: typeof DocsRoute
   ApiTelemetryRoute: typeof ApiTelemetryRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  DocsRoute: DocsRoute,
   ApiTelemetryRoute: ApiTelemetryRoute,
 }
 export const routeTree = rootRouteImport
