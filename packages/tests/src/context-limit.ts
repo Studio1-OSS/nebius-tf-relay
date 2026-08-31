@@ -5,7 +5,9 @@ import {
   registerCodexSession,
   startTestDaemon,
 } from "./daemon-session.js";
-import { makeLongRecords } from "./long-context.js";
+import { makeLongRecords, recordsToOverflow } from "./long-context.js";
+import { findModelById } from "@nebiusrelay/models";
+import { initModelCatalog } from "../../cli/src/lib/model-catalog-init.js";
 import type { TestContext } from "./types.js";
 
 export async function assertClaudeContextLimitRetry(context: TestContext): Promise<void> {
@@ -15,7 +17,10 @@ export async function assertClaudeContextLimitRetry(context: TestContext): Promi
     const prompt = [
       "This request intentionally exceeds the model context window when paired with the requested max_tokens.",
       "If the proxy retries correctly with a reduced max_tokens value, answer exactly: CONTEXT_RETRY_OK",
-      makeLongRecords(1_650, "CLAUDE_CONTEXT_RETRY_FINAL"),
+      makeLongRecords(
+        await overflowRecords("zai-org/GLM-5.2", 164_000),
+        "CLAUDE_CONTEXT_RETRY_FINAL",
+      ),
     ].join("\n\n");
     const response = await fetch(`${daemon.url}/v1/messages`, {
       method: "POST",
@@ -60,7 +65,10 @@ export async function assertCodexContextLimitRetry(context: TestContext): Promis
     const prompt = [
       "This Responses request intentionally exceeds the model context window when paired with the requested max_output_tokens.",
       "If the proxy retries correctly with a reduced max_tokens value, answer exactly: CODEX_CONTEXT_RETRY_OK",
-      makeLongRecords(1_650, "CODEX_CONTEXT_RETRY_FINAL"),
+      makeLongRecords(
+        await overflowRecords("zai-org/GLM-5.2", 164_000),
+        "CODEX_CONTEXT_RETRY_FINAL",
+      ),
     ].join("\n\n");
     const response = await fetch(`${daemon.url}/v1/responses`, {
       method: "POST",
@@ -92,4 +100,19 @@ export async function assertCodexContextLimitRetry(context: TestContext): Promis
     await deleteSession(daemon, token);
     await daemon.stop();
   }
+}
+
+/**
+ * Size the payload against the model's LIVE context window.
+ *
+ * The daemon refreshes its catalog from Nebius, so the test has to look at the
+ * same numbers or the two disagree: Nebius raised GLM-5.2 from 262K to 1M, the
+ * hardcoded payload stopped overflowing, and the retry under test silently
+ * stopped firing while the assertion still claimed to check it.
+ */
+async function overflowRecords(modelId: string, maxOutputTokens: number): Promise<number> {
+  await initModelCatalog({});
+  const model = findModelById(modelId);
+  assert(model !== undefined, `context-limit test needs ${modelId} in the catalog`);
+  return recordsToOverflow(model.limit.context, maxOutputTokens);
 }
