@@ -60,7 +60,17 @@ export function parseNebiusContextLengthMaxTokens(message: string): number | und
   // Without this the reactive context-fit never learns the real limit and the
   // turn fails outright rather than self-healing.
   const parentheticalMatch = message.match(/maximum context length\s*\(([\d,_]+)\)/is);
-  return parseTokenCount(parentheticalMatch?.[1]);
+  if (parentheticalMatch) {
+    return parseTokenCount(parentheticalMatch[1]);
+  }
+  // Nebius's own phrasing uses "of" rather than "is":
+  //   "Requested token count exceeds the model's maximum context length of
+  //    1048576 tokens. You requested a total of 1124213 tokens: 993141 tokens
+  //    from the input messages and 131072 tokens for the completion."
+  // Without this the reactive context-fit never learns the ceiling, so a real
+  // overflow surfaces to the user as a hard 500 instead of self-healing.
+  const ofMatch = message.match(/maximum context length of\s+([\d,_]+)\s+tokens/is);
+  return parseTokenCount(ofMatch?.[1]);
 }
 
 export function parseNebiusContextLengthInputTokens(message: string): number | undefined {
@@ -87,7 +97,13 @@ export function parseNebiusContextLengthInputTokens(message: string): number | u
     return parseTokenCount(countedMatch[1]);
   }
   const resolvedInputMatch = message.match(/request resolved to\s+([\d,_]+)\s+input tokens\b/is);
-  return parseTokenCount(resolvedInputMatch?.[1]);
+  if (resolvedInputMatch) {
+    return parseTokenCount(resolvedInputMatch[1]);
+  }
+  // Nebius: "...993141 tokens from the input messages and 131072 tokens for
+  // the completion." Pairs with the "maximum context length of" ceiling above.
+  const fromInputMatch = message.match(/([\d,_]+)\s+tokens from the input messages\b/is);
+  return parseTokenCount(fromInputMatch?.[1]);
 }
 
 function parseTokenCount(value: string | undefined): number | undefined {
