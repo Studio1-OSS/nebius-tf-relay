@@ -119,6 +119,10 @@ Claude Code and Codex are text-native; image blocks are auto-routed to a vision-
 
 Claude Code and Codex expose a native `web_search` tool. The relay backs it with [Tavily](https://tavily.com): if a Tavily key is configured, searches return real results with citations. Without one, a search returns a clear "TAVILY_API_KEY not set" message instead of failing silently. Nebius has no hosted search tool, so this is how agents get live web access.
 
+## Changelog
+
+User-visible changes are recorded in [CHANGELOG.md](CHANGELOG.md).
+
 ## Configuration & env vars
 
 | Variable                           | Effect                                                                                                                                                                                 |
