@@ -1,26 +1,61 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowUpRight, Check, Copy, Link as LinkIcon, Search } from "lucide-react";
+import { ProviderBrand } from "../components/ProviderBrand";
+import { pageHead, siteUrl, structuredData } from "../lib/seo";
+import "../styles/landing.css";
+import "../styles/docs.css";
 
-const installCommand = "curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh";
+const installCommand = "curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | bash";
 const githubUrl = "https://github.com/Studio1-OSS/nebius-tf-relay";
 const changelogUrl = "https://github.com/Studio1-OSS/nebius-tf-relay/blob/main/CHANGELOG.md";
 const nebiusApiKeysUrl = "https://tokenfactory.nebius.com/?modals=create-api-key";
 const tavilyUrl = "https://app.tavily.com";
 const llmsUrl = "https://nebius-tf-relay.vercel.app/llms.txt";
 
-export const Route = createFileRoute("/docs")({ component: Docs });
+export const Route = createFileRoute("/docs")({
+  component: Docs,
+  head: () => ({
+    ...pageHead(
+      "Documentation | Install & Configure Nebius TF Relay",
+      "Install Nebius TF Relay, configure Nebius and Tavily API keys, choose coding agents and models, track costs, and troubleshoot your local relay.",
+      "/docs",
+    ),
+    scripts: [
+      structuredData({
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        headline: "Nebius TF Relay documentation",
+        url: `${siteUrl}/docs`,
+        description:
+          "Installation, configuration, commands, web search, and troubleshooting for Nebius TF Relay.",
+        about: { "@type": "SoftwareApplication", name: "Nebius TF Relay", url: `${siteUrl}/` },
+      }),
+      structuredData({
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: `${siteUrl}/` },
+          { "@type": "ListItem", position: 2, name: "Documentation", item: `${siteUrl}/docs` },
+        ],
+      }),
+    ],
+  }),
+});
 
 /** Section ids drive both the sidebar and the scroll-spy highlight. */
 const sections = [
   { id: "what-it-does", label: "What it does" },
   { id: "install", label: "Install" },
   { id: "harnesses", label: "Harnesses" },
+  { id: "desktop", label: "Desktop (alpha)" },
   { id: "commands", label: "Commands" },
   { id: "models", label: "Models" },
   { id: "web-search", label: "Web search" },
   { id: "metering", label: "Cost metering" },
   { id: "env", label: "Environment" },
+  { id: "troubleshooting", label: "Troubleshooting" },
   { id: "agents", label: "For AI agents" },
 ];
 
@@ -115,321 +150,439 @@ const envVars: Array<[string, ReactNode]> = [
 function Docs() {
   const [active, setActive] = useState(sections[0]!.id);
 
-  // Highlight the section currently nearest the top of the viewport.
+  const [query, setQuery] = useState("");
+  const filteredSections = sections.filter((section) =>
+    section.label.toLowerCase().includes(query.trim().toLowerCase()),
+  );
+
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (visible) setActive(visible.target.id);
-      },
-      { rootMargin: "-80px 0px -70% 0px" },
-    );
-    for (const s of sections) {
-      const el = document.getElementById(s.id);
-      if (el) observer.observe(el);
-    }
-    return () => observer.disconnect();
+    let frame = 0;
+    const update = () => {
+      const current = [...sections].reverse().find(({ id }) => {
+        const element = document.getElementById(id);
+        return element && element.getBoundingClientRect().top <= 150;
+      });
+      setActive(current?.id ?? sections[0].id);
+    };
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
   }, []);
 
   return (
-    <main className="min-h-screen bg-canvas text-ink">
-      <div className="mx-auto max-w-[1180px] px-6">
-        <header className="flex items-center gap-3 py-5">
-          <a className="flex items-center gap-2.5" href="/">
-            <BrandMark />
-            <span className="text-[15.5px] font-semibold tracking-tight text-ink">
-              Nebius TF Relay
-            </span>
-          </a>
-          <span className="rounded-full bg-code px-2.5 py-1 text-[12px] font-medium text-muted">
-            Docs
+    <div className="relay-home docs-page">
+      <a className="skip-link" href="#docs-content">
+        Skip to documentation
+      </a>
+      <header className="relay-nav wrap docs-header">
+        <a className="relay-brand" href="/" aria-label="Nebius TF Relay home">
+          <img src="/relay-logo.png" alt="" width="36" height="36" />
+          <span>
+            Nebius <b>TF Relay</b>
           </span>
-          <nav className="ml-auto flex items-center gap-1 text-[14px] font-medium text-muted">
-            <a className="rounded-lg px-3 py-2 transition hover:bg-code hover:text-ink" href="/">
-              Home
+        </a>
+        <nav aria-label="Main navigation">
+          <a href="/">Home</a>
+          <a href={githubUrl} target="_blank" rel="noopener noreferrer">
+            GitHub <ArrowUpRight size={14} />
+          </a>
+          <a className="button button-dark" href="#install">
+            Quick start <ArrowUpRight size={14} />
+          </a>
+        </nav>
+      </header>
+      <div className="docs-layout wrap">
+        <aside className="docs-sidebar">
+          <div className="docs-sidebar-inner">
+            <a className="docs-back" href="/">
+              Home / <strong>Documentation</strong>
             </a>
-            <a
-              className="hidden rounded-lg px-3 py-2 transition hover:bg-code hover:text-ink sm:block"
-              href={githubUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              GitHub
-            </a>
-            <a
-              className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-violet px-3.5 py-2 text-[13.5px] font-semibold text-white transition hover:brightness-[1.06] active:scale-[.98]"
-              href={nebiusApiKeysUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Get API key
-              <ArrowUpRight />
-            </a>
-          </nav>
-        </header>
-
-        <div className="flex gap-12 pb-24">
-          <aside className="hidden w-[190px] shrink-0 lg:block">
-            <nav className="sticky top-8 flex flex-col gap-0.5 text-[14px]">
-              {sections.map((s) => (
+            <label className="docs-search">
+              <Search size={16} />
+              <input
+                type="search"
+                placeholder="Find a section"
+                aria-label="Find a documentation section"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+            <p className="eyebrow">DOCUMENTATION</p>
+            <nav aria-label="Documentation sections">
+              {filteredSections.map((section) => (
                 <a
-                  key={s.id}
-                  href={`#${s.id}`}
-                  className={`rounded-lg px-3 py-1.5 transition ${
-                    active === s.id ? "bg-code font-semibold text-ink" : "text-muted hover:text-ink"
-                  }`}
+                  key={section.id}
+                  href={`#${section.id}`}
+                  aria-current={active === section.id ? "location" : undefined}
                 >
-                  {s.label}
+                  {section.label}
                 </a>
               ))}
+              {filteredSections.length === 0 && (
+                <p className="docs-no-results" role="status">
+                  No matching sections.
+                </p>
+              )}
+            </nav>
+            <div className="docs-sidebar-links">
+              <a href={changelogUrl} target="_blank" rel="noopener noreferrer">
+                Changelog <ArrowUpRight size={14} />
+              </a>
+              <a href="/llms.txt">
+                llms.txt <ArrowUpRight size={14} />
+              </a>
+            </div>
+          </div>
+        </aside>
+        <main id="docs-content" className="docs-content">
+          <div className="docs-mobile-nav">
+            <label htmlFor="docs-jump">On this page</label>
+            <select
+              id="docs-jump"
+              value={active}
+              onChange={(event) => {
+                window.location.hash = event.target.value;
+                setActive(event.target.value);
+              }}
+            >
+              {sections.map((section) => (
+                <option key={section.id} value={section.id}>
+                  {section.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="docs-intro">
+            <p className="eyebrow">
+              NEBIUS <span className="relay-name">TF RELAY</span> / DOCS
+            </p>
+            <h1>Documentation</h1>
+            <p>
+              Everything you need to run your coding agents on Nebius Token Factory, with optional
+              Tavily web search.
+            </p>
+            <div className="docs-provider-row">
+              <ProviderBrand provider="nebius" />
+              <ProviderBrand provider="tavily" />
+            </div>
+            <div className="docs-quick-links">
+              <a href="#install">
+                Install & configure <ArrowUpRight size={14} />
+              </a>
+              <a href="#commands">
+                Command reference <ArrowUpRight size={14} />
+              </a>
+              <a href="#troubleshooting">
+                Troubleshooting <ArrowUpRight size={14} />
+              </a>
+            </div>
+          </div>
+          <Section id="what-it-does" title="What it does">
+            <P>
+              Nebius Token Factory serves open models over an OpenAI-compatible API. It does not
+              speak the Anthropic Messages API that Claude Code uses, nor the OpenAI Responses API
+              that Codex uses. The relay runs a small local daemon that translates those wire
+              formats to Nebius <Code>/chat/completions</Code> on the fly - your agent believes it
+              is talking to its native backend, while every token is served by Nebius.
+            </P>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <Card title="Proxied harnesses">
+                Claude Code and Codex. The daemon translates each request and response, tracks cost,
+                retries transient failures, trims context to fit, and emulates native web search.
+              </Card>
+              <Card title="Spawned harnesses">
+                Everything else. Launched with a generated provider config pointed at Nebius - no
+                proxy needed, since they already speak the OpenAI-compatible format.
+              </Card>
+            </div>
+            <Callout>
+              CLI launches use temporary provider settings. The optional Codex / ChatGPT Desktop
+              integration manages a persistent config separately;{" "}
+              <Code>nebiusrelay chatgpt off</Code>
+              restores that integration.
+            </Callout>
+          </Section>
+
+          <Section id="install" title="Install">
+            <P>
+              The one-liner installs <Code>nebiusrelay</Code> plus a short alias per harness into{" "}
+              <Code>~/.nebiusrelay/bin/</Code>, and installs Bun for you if it is not already
+              present.
+            </P>
+            <CopyBox className="mt-4" text={installCommand} />
+            <P className="mt-5">First run walks you through configuration, or run it directly:</P>
+            <CopyBox className="mt-3" text="nebiusrelay configure" />
+            <P className="mt-5">You will be asked for two keys:</P>
+            <Table head={["Key", "Where to get it", "Required"]}>
+              <Row>
+                <Cell strong>Nebius API key</Cell>
+                <Cell>
+                  <Link href={nebiusApiKeysUrl}>tokenfactory.nebius.com</Link>
+                </Cell>
+                <Cell>Yes</Cell>
+              </Row>
+              <Row>
+                <Cell strong>Tavily API key</Cell>
+                <Cell>
+                  <Link href={tavilyUrl}>app.tavily.com</Link>
+                </Cell>
+                <Cell>Optional - enables web search</Cell>
+              </Row>
+            </Table>
+            <Callout>
+              Keys are saved in <Code>~/.nebiusrelay/config.json</Code> and used to authenticate
+              requests to Nebius and Tavily. In an interactive terminal, a missing agent can be
+              installed after you confirm its displayed install command. Non-interactive runs print
+              installation instructions.
+            </Callout>
+          </Section>
+
+          <Section id="harnesses" title="Harnesses">
+            <P>
+              Launch any of them directly. Extra arguments are passed straight through to the
+              underlying agent.
+            </P>
+            <Table head={["Harness", "Command", "Mode", "Notes"]}>
+              {harnesses.map(([name, cmd, mode, note]) => (
+                <Row key={cmd}>
+                  <Cell strong>{name}</Cell>
+                  <Cell>
+                    <Code>{cmd}</Code>
+                  </Cell>
+                  <Cell>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[12px] font-medium ${
+                        mode === "Proxied"
+                          ? "bg-violet-soft text-violet"
+                          : "bg-lime/25 text-lime-ink"
+                      }`}
+                    >
+                      {mode}
+                    </span>
+                  </Cell>
+                  <Cell>{note}</Cell>
+                </Row>
+              ))}
+            </Table>
+            <CopyBox className="mt-5" text={'nclaude -p "explain this repo"'} />
+          </Section>
+
+          <Section id="commands" title="Commands">
+            <Table head={["Command", "What it does"]}>
+              {[
+                ["nebiusrelay", "Interactive launcher - pick a harness."],
+                ["nebiusrelay configure", "Set your API keys."],
+                ["nebiusrelay usage --last 7d", "Local spend by model and tool. Never uploaded."],
+                ["nebiusrelay update", "Update to the latest release now."],
+                ["nebiusrelay daemon install", "Start the daemon at login (launchd / systemd)."],
+                ["nebiusrelay daemon status", "Show auto-start status."],
+                ["nebiusrelay daemon stop", "Stop the running daemon."],
+                ["nebiusrelay chatgpt off", "Restore your previous Codex / ChatGPT config."],
+              ].map(([cmd, what]) => (
+                <Row key={cmd}>
+                  <Cell>
+                    <Code>{cmd}</Code>
+                  </Cell>
+                  <Cell>{what}</Cell>
+                </Row>
+              ))}
+            </Table>
+          </Section>
+
+          <Section id="desktop" title="ChatGPT / Codex Desktop (alpha)">
+            <P>
+              The released CLI includes <Code>nebiusrelay chatgpt</Code> (alias:
+              <Code> codex-app</Code>) for compatible desktop coding tasks. It configures a local
+              Responses provider in <Code>~/.codex/config.toml</Code>, writes a model catalog, and
+              attempts to open the desktop app.
+            </P>
+            <CopyBox text="nebiusrelay chatgpt" />
+            <Callout>
+              This integration is explicitly alpha in the CLI. It uses a provider-auth workaround
+              and changes persistent configuration shared with Codex CLI, unlike the temporary
+              settings used by the harness wrappers. It does not change the model selection for
+              ordinary ChatGPT web chats. Desktop compatibility depends on the installed app
+              version.
+            </Callout>
+            <P>Restore the backed-up configuration when you are finished:</P>
+            <CopyBox text="nebiusrelay chatgpt off" />
+          </Section>
+          <Section id="models" title="Models">
+            <div className="docs-provider-inline">
+              <ProviderBrand provider="nebius" />
+            </div>
+            <P>
+              The model list is fetched live from Nebius at startup, so every model they serve is
+              available and each model's vision support comes from the API's own modality field -
+              never a hand-maintained list. Results are cached locally and fall back to a bundled
+              snapshot when offline.
+            </P>
+            <Table head={["Model", "Best for", "Context", "Vision"]}>
+              {models.map(([name, best, ctx, vision, isDefault]) => (
+                <Row key={name as string}>
+                  <Cell strong>
+                    {name}
+                    {isDefault ? (
+                      <span className="ml-2 rounded-full bg-lime/25 px-2 py-0.5 text-[11px] font-semibold text-lime-ink">
+                        DEFAULT
+                      </span>
+                    ) : null}
+                  </Cell>
+                  <Cell>{best}</Cell>
+                  <Cell>{ctx}</Cell>
+                  <Cell>{vision}</Cell>
+                </Row>
+              ))}
+            </Table>
+            <Callout>
+              In Codex, select a vision-capable model before attaching images. Claude Code uses a
+              separate vision-description path. Image input controls depend on your harness and
+              terminal.
+            </Callout>
+          </Section>
+
+          <Section id="web-search" title="Web search">
+            <div className="docs-provider-inline">
+              <ProviderBrand provider="tavily" />
+            </div>
+            <P>
+              Claude Code and Codex expose a native <Code>web_search</Code> tool. The relay backs it
+              with Tavily: with a key configured, searches return real results with citations.
+              Without one, a search returns a clear "TAVILY_API_KEY not set" message rather than
+              failing silently. Nebius has no hosted search tool, so this is how agents get live web
+              access.
+            </P>
+          </Section>
+
+          <Section id="metering" title="Cost metering">
+            <P>
+              Claude and Codex are proxied, so the daemon meters every turn. The other harnesses
+              hold the key and call Nebius directly, which is why they report $0.00.{" "}
+              <Code>NEBIUSRELAY_METER=1</Code> points them at the daemon instead:
+            </P>
+            <CopyBox className="mt-4" text={'NEBIUSRELAY_METER=1 npi --print "..."'} />
+            <pre className="mt-3 overflow-x-auto rounded-xl bg-code px-4 py-3 font-mono text-[13px] leading-relaxed text-muted">
+              {
+                "Nebius TF Relay ▸ Launching Pi Code with Nebius Token Factory.\n[nebiusrelay cost] session total: $0.0056 (1,518 in, 69 out)"
+              }
+            </pre>
+            <P className="mt-4">
+              They then share the same client as everyone else - automatic model fallback, the
+              per-model circuit breaker, transient-fault retries - and the real Nebius key stays
+              inside the daemon, since the harness only ever sees a local session token. If the
+              daemon is unreachable the launcher says so and connects directly, so metering can
+              never be the reason a session fails to start.
+            </P>
+          </Section>
+
+          <Section id="env" title="Environment">
+            <Table head={["Variable", "Effect"]}>
+              {envVars.map(([name, effect]) => (
+                <Row key={name}>
+                  <Cell>
+                    <Code>{name}</Code>
+                  </Cell>
+                  <Cell>{effect}</Cell>
+                </Row>
+              ))}
+            </Table>
+          </Section>
+
+          <Section id="troubleshooting" title="Troubleshooting">
+            <details className="docs-faq">
+              <summary>Configuration crashes or cannot read a key</summary>
+              <P>
+                Update the installed CLI, then run configuration again in an interactive terminal.
+                Required keys cannot be blank; press Enter to skip the optional Tavily key.
+              </P>
+              <CopyBox text="nebiusrelay update" />
+              <CopyBox text="nebiusrelay configure" />
+            </details>
+            <details className="docs-faq">
+              <summary>Command not found after installation</summary>
+              <P>
+                Open a new terminal so your shell picks up the installer&apos;s PATH change. You can
+                also run the installed executable directly:
+              </P>
+              <CopyBox text="~/.nebiusrelay/bin/nebiusrelay configure" />
+            </details>
+            <details className="docs-faq">
+              <summary>Web search says TAVILY_API_KEY is not set</summary>
+              <P>
+                Add a Tavily key with <Code>nebiusrelay configure</Code>, then launch a new agent
+                session. A Nebius key alone does not enable web search.
+              </P>
+            </details>
+            <details className="docs-faq">
+              <summary>A spawned agent reports zero cost</summary>
+              <P>
+                Enable daemon metering for that launch. See <a href="#metering">Cost metering</a>{" "}
+                for details.
+              </P>
+              <CopyBox text="NEBIUSRELAY_METER=1 npi" />
+            </details>
+          </Section>
+          <Section id="agents" title="For AI agents">
+            <P>
+              An LLM-readable doc is published at <Link href={llmsUrl}>llms.txt</Link>. If you are
+              an agent asked to install, configure or drive nebiusrelay - including headless - read
+              that first. It covers install, configure, every command, the models, and headless
+              usage patterns.
+            </P>
+            <div className="mt-8 flex flex-wrap gap-3">
               <a
-                className="mt-3 rounded-lg px-3 py-1.5 text-muted transition hover:text-ink"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-ink px-4 py-2.5 text-[14px] font-semibold text-white transition hover:brightness-110"
+                href={githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Source on GitHub
+                <ArrowUpRight />
+              </a>
+              <a
+                className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong px-4 py-2.5 text-[14px] font-semibold text-ink transition hover:bg-code"
                 href={changelogUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Changelog ↗
+                Changelog
+                <ArrowUpRight />
               </a>
-            </nav>
-          </aside>
-
-          <article className="min-w-0 flex-1">
-            <h1 className="text-[clamp(30px,4vw,42px)] font-semibold leading-[1.1] tracking-[-0.02em]">
-              Documentation
-            </h1>
-            <p className="mt-4 max-w-[640px] text-[17px] leading-relaxed text-muted">
-              Run Claude Code, Codex, OpenCode, Pi, Prime Agent, Hermes, DeepSeek Harness and Grok
-              Build on Nebius Token Factory open models. One install, no edits to your real agent
-              config.
-            </p>
-            <CopyBox className="mt-7 max-w-[640px]" text={installCommand} />
-
-            <Section id="what-it-does" title="What it does">
-              <P>
-                Nebius Token Factory serves open models over an OpenAI-compatible API. It does not
-                speak the Anthropic Messages API that Claude Code uses, nor the OpenAI Responses API
-                that Codex uses. The relay runs a small local daemon that translates those wire
-                formats to Nebius <Code>/chat/completions</Code> on the fly - your agent believes it
-                is talking to its native backend, while every token is served by Nebius.
-              </P>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <Card title="Proxied harnesses">
-                  Claude Code and Codex. The daemon translates each request and response, tracks
-                  cost, retries transient failures, trims context to fit, and emulates native web
-                  search.
-                </Card>
-                <Card title="Spawned harnesses">
-                  Everything else. Launched with a generated provider config pointed at Nebius - no
-                  proxy needed, since they already speak the OpenAI-compatible format.
-                </Card>
-              </div>
-              <Callout>
-                Nothing about your agent install changes. The relay injects a base URL and API key
-                per session and writes nothing permanent to your agent's config.
-              </Callout>
-            </Section>
-
-            <Section id="install" title="Install">
-              <P>
-                The one-liner installs <Code>nebiusrelay</Code> plus a short alias per harness into{" "}
-                <Code>~/.nebiusrelay/bin/</Code>, and installs Bun for you if it is not already
-                present.
-              </P>
-              <CopyBox className="mt-4" text={installCommand} />
-              <P className="mt-5">First run walks you through configuration, or run it directly:</P>
-              <CopyBox className="mt-3" text="nebiusrelay configure" />
-              <P className="mt-5">You will be asked for two keys:</P>
-              <Table head={["Key", "Where to get it", "Required"]}>
-                <Row>
-                  <Cell strong>Nebius API key</Cell>
-                  <Cell>
-                    <Link href={nebiusApiKeysUrl}>tokenfactory.nebius.com</Link>
-                  </Cell>
-                  <Cell>Yes</Cell>
-                </Row>
-                <Row>
-                  <Cell strong>Tavily API key</Cell>
-                  <Cell>
-                    <Link href={tavilyUrl}>app.tavily.com</Link>
-                  </Cell>
-                  <Cell>Optional - enables web search</Cell>
-                </Row>
-              </Table>
-              <Callout>
-                Both are stored in <Code>~/.nebiusrelay/</Code> and never leave your machine. If the
-                underlying agent CLI is not installed, the relay prints its official install command
-                and exits - it never installs agents for you.
-              </Callout>
-            </Section>
-
-            <Section id="harnesses" title="Harnesses">
-              <P>
-                Launch any of them directly. Extra arguments are passed straight through to the
-                underlying agent.
-              </P>
-              <Table head={["Harness", "Command", "Mode", "Notes"]}>
-                {harnesses.map(([name, cmd, mode, note]) => (
-                  <Row key={cmd}>
-                    <Cell strong>{name}</Cell>
-                    <Cell>
-                      <Code>{cmd}</Code>
-                    </Cell>
-                    <Cell>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[12px] font-medium ${
-                          mode === "Proxied"
-                            ? "bg-violet-soft text-violet"
-                            : "bg-lime/25 text-lime-ink"
-                        }`}
-                      >
-                        {mode}
-                      </span>
-                    </Cell>
-                    <Cell>{note}</Cell>
-                  </Row>
-                ))}
-              </Table>
-              <CopyBox className="mt-5" text={'nclaude -p "explain this repo"'} />
-            </Section>
-
-            <Section id="commands" title="Commands">
-              <Table head={["Command", "What it does"]}>
-                {[
-                  ["nebiusrelay", "Interactive launcher - pick a harness."],
-                  ["nebiusrelay configure", "Set your API keys."],
-                  ["nebiusrelay usage --last 7d", "Local spend by model and tool. Never uploaded."],
-                  ["nebiusrelay update", "Update to the latest release now."],
-                  ["nebiusrelay daemon install", "Start the daemon at login (launchd / systemd)."],
-                  ["nebiusrelay daemon status", "Show auto-start status."],
-                  ["nebiusrelay daemon stop", "Stop the running daemon."],
-                  ["nebiusrelay chatgpt off", "Restore your previous Codex / ChatGPT config."],
-                ].map(([cmd, what]) => (
-                  <Row key={cmd}>
-                    <Cell>
-                      <Code>{cmd}</Code>
-                    </Cell>
-                    <Cell>{what}</Cell>
-                  </Row>
-                ))}
-              </Table>
-            </Section>
-
-            <Section id="models" title="Models">
-              <P>
-                The model list is fetched live from Nebius at startup, so every model they serve is
-                available and each model's vision support comes from the API's own modality field -
-                never a hand-maintained list. Results are cached locally and fall back to a bundled
-                snapshot when offline.
-              </P>
-              <Table head={["Model", "Best for", "Context", "Vision"]}>
-                {models.map(([name, best, ctx, vision, isDefault]) => (
-                  <Row key={name as string}>
-                    <Cell strong>
-                      {name}
-                      {isDefault ? (
-                        <span className="ml-2 rounded-full bg-lime/25 px-2 py-0.5 text-[11px] font-semibold text-lime-ink">
-                          DEFAULT
-                        </span>
-                      ) : null}
-                    </Cell>
-                    <Cell>{best}</Cell>
-                    <Cell>{ctx}</Cell>
-                    <Cell>{vision}</Cell>
-                  </Row>
-                ))}
-              </Table>
-              <Callout>
-                Claude Code and Codex are text-native, so image blocks are auto-routed to a
-                vision-capable model. Switch models inside your agent, or with <Code>--model</Code>{" "}
-                before the harness name.
-              </Callout>
-            </Section>
-
-            <Section id="web-search" title="Web search">
-              <P>
-                Claude Code and Codex expose a native <Code>web_search</Code> tool. The relay backs
-                it with Tavily: with a key configured, searches return real results with citations.
-                Without one, a search returns a clear "TAVILY_API_KEY not set" message rather than
-                failing silently. Nebius has no hosted search tool, so this is how agents get live
-                web access.
-              </P>
-            </Section>
-
-            <Section id="metering" title="Cost metering">
-              <P>
-                Claude and Codex are proxied, so the daemon meters every turn. The other harnesses
-                hold the key and call Nebius directly, which is why they report $0.00.{" "}
-                <Code>NEBIUSRELAY_METER=1</Code> points them at the daemon instead:
-              </P>
-              <CopyBox className="mt-4" text={'NEBIUSRELAY_METER=1 npi --print "..."'} />
-              <pre className="mt-3 overflow-x-auto rounded-xl bg-code px-4 py-3 font-mono text-[13px] leading-relaxed text-muted">
-                {
-                  "Nebius TF Relay ▸ Launching Pi Code with Nebius Token Factory.\n[nebiusrelay cost] session total: $0.0056 (1,518 in, 69 out)"
-                }
-              </pre>
-              <P className="mt-4">
-                They then share the same client as everyone else - automatic model fallback, the
-                per-model circuit breaker, transient-fault retries - and the real Nebius key stays
-                inside the daemon, since the harness only ever sees a local session token. If the
-                daemon is unreachable the launcher says so and connects directly, so metering can
-                never be the reason a session fails to start.
-              </P>
-            </Section>
-
-            <Section id="env" title="Environment">
-              <Table head={["Variable", "Effect"]}>
-                {envVars.map(([name, effect]) => (
-                  <Row key={name}>
-                    <Cell>
-                      <Code>{name}</Code>
-                    </Cell>
-                    <Cell>{effect}</Cell>
-                  </Row>
-                ))}
-              </Table>
-            </Section>
-
-            <Section id="agents" title="For AI agents">
-              <P>
-                An LLM-readable doc is published at <Link href={llmsUrl}>llms.txt</Link>. If you are
-                an agent asked to install, configure or drive nebiusrelay - including headless -
-                read that first. It covers install, configure, every command, the models, and
-                headless usage patterns.
-              </P>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <a
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-ink px-4 py-2.5 text-[14px] font-semibold text-white transition hover:brightness-110"
-                  href={githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Source on GitHub
-                  <ArrowUpRight />
-                </a>
-                <a
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong px-4 py-2.5 text-[14px] font-semibold text-ink transition hover:bg-code"
-                  href={changelogUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Changelog
-                  <ArrowUpRight />
-                </a>
-              </div>
-            </Section>
-          </article>
-        </div>
+            </div>
+          </Section>
+          <footer className="docs-footer">
+            <span>MIT licensed · Studio1</span>
+            <a href={githubUrl + "/issues"} target="_blank" rel="noopener noreferrer">
+              Report an issue <ArrowUpRight size={14} />
+            </a>
+          </footer>
+        </main>
       </div>
-    </main>
+    </div>
   );
 }
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section id={id} className="mt-14 scroll-mt-8">
-      <h2 className="text-[24px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+    <section id={id} className="docs-section">
+      <h2>
+        {title}
+        <a
+          className="section-anchor"
+          href={`#${id}`}
+          aria-label={`Link to ${title}`}
+          title={`Link to ${title}`}
+        >
+          <LinkIcon size={16} />
+        </a>
+      </h2>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -483,13 +636,19 @@ function Callout({ children }: { children: ReactNode }) {
 
 function Table({ head, children }: { head: string[]; children: ReactNode }) {
   return (
-    <div className="mt-4 overflow-x-auto rounded-xl border border-line">
+    <div
+      className="docs-table"
+      tabIndex={0}
+      role="region"
+      aria-label={`${head[0]} reference table`}
+    >
       <table className="w-full border-collapse text-left text-[14.5px]">
         <thead>
           <tr className="border-b border-line bg-code/50">
             {head.map((h) => (
               <th
                 key={h}
+                scope="col"
                 className="px-4 py-2.5 text-[12.5px] font-semibold tracking-wide text-faint uppercase"
               >
                 {h}
@@ -516,55 +675,49 @@ function Cell({ children, strong = false }: { children: ReactNode; strong?: bool
 }
 
 function CopyBox({ text, className = "" }: { text: string; className?: string }) {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const code = useRef<HTMLElement>(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  async function copy() {
+    clearTimeout(timer.current);
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus("copied");
+    } catch {
+      if (code.current) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(code.current);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
+      setStatus("failed");
+    }
+    timer.current = setTimeout(() => setStatus("idle"), 2200);
+  }
   return (
-    <div
-      className={`flex items-center gap-3 rounded-xl bg-[linear-gradient(150deg,var(--color-surface)_0%,var(--color-surface-2)_100%)] px-4 py-3 ${className}`}
-    >
-      <code className="min-w-0 flex-1 overflow-x-auto font-mono text-[13.5px] whitespace-nowrap text-white/90">
-        <span className="text-lime">$</span> {text}
-      </code>
-      <button
-        type="button"
-        className="shrink-0 rounded-lg bg-white/10 px-2.5 py-1.5 text-[12.5px] font-medium text-white/80 transition hover:bg-white/20"
-        onClick={() => {
-          void navigator.clipboard?.writeText(text);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1400);
-        }}
-      >
-        {copied ? "Copied" : "Copy"}
-      </button>
+    <div className={`docs-copy-block ${className}`}>
+      <div className="docs-command">
+        <span aria-hidden="true">$</span>
+        <code ref={code}>{text}</code>
+        <button
+          type="button"
+          className="copy-button"
+          onClick={copy}
+          aria-label={`Copy command: ${text}`}
+          title="Copy command"
+        >
+          {status === "copied" ? <Check size={16} /> : <Copy size={16} />}
+        </button>
+      </div>
+      <span className="docs-copy-status" role="status">
+        {status === "copied"
+          ? "Copied to clipboard"
+          : status === "failed"
+            ? "Clipboard unavailable. Command selected for copying."
+            : ""}
+      </span>
     </div>
-  );
-}
-
-function BrandMark() {
-  return (
-    <span className="relative flex size-8 items-center justify-center rounded-[9px] bg-ink">
-      <span className="absolute inset-0 rounded-[9px] bg-[radial-gradient(120%_120%_at_20%_0%,rgba(198,241,53,.4)_0%,rgba(198,241,53,0)_55%)]" />
-      <svg className="relative size-[18px]" viewBox="0 0 800 800" aria-hidden="true">
-        <path
-          fill="#c6f135"
-          fillRule="evenodd"
-          d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"
-        />
-        <path fill="#ffffff" d="M517.36 400H634.72V634.72H517.36Z" />
-      </svg>
-    </span>
-  );
-}
-
-function ArrowUpRight() {
-  return (
-    <svg className="size-3.5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M7 17L17 7M17 7H8M17 7v9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

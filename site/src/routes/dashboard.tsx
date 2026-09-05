@@ -79,6 +79,12 @@ const saveInstallNickname = createServerFn({ method: "POST" })
   });
 
 export const Route = createFileRoute("/dashboard")({
+  head: () => ({
+    meta: [
+      { title: "Dashboard | Nebius TF Relay" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   loader: async () => checkDashboardAuth(),
   component: DashboardRoute,
 });

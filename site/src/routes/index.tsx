@@ -1,8 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Cable,
+  ChartNoAxesCombined,
+  Check,
+  Copy,
+  GitBranch,
+  Search,
+  ShieldCheck,
+  Terminal,
+} from "lucide-react";
+import "../styles/landing.css";
+import { ProviderBrand } from "../components/ProviderBrand";
+import { pageHead, siteUrl, structuredData } from "../lib/seo";
 import { useEffect, useRef, useState } from "react";
 
-const installCommand = "curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh";
+const installCommand = "curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | bash";
 const githubUrl = "https://github.com/Studio1-OSS/nebius-tf-relay";
 const docsUrl = "/docs";
 const nebiusApiKeysUrl = "https://tokenfactory.nebius.com/?modals=create-api-key";
@@ -14,7 +29,7 @@ const llmsUrl = "/llms.txt";
 type Agent = {
   name: string;
   command: string;
-  status: "Stable" | "Beta";
+  status: "Proxied" | "Provider config" | "Alpha";
   mark: ReactNode;
   blurb: string;
 };
@@ -23,7 +38,7 @@ const agents: Agent[] = [
   {
     name: "Claude Code",
     command: "nclaude",
-    status: "Beta",
+    status: "Proxied",
     mark: <ClaudeMark />,
     blurb:
       "Routes Claude Code through a local Anthropic-to-Nebius translation proxy. Your subscription, login, and config stay untouched.",
@@ -31,7 +46,7 @@ const agents: Agent[] = [
   {
     name: "Codex CLI",
     command: "ncodex",
-    status: "Stable",
+    status: "Proxied",
     mark: <CodexMark />,
     blurb:
       "Talks to Nebius through a local Responses-to-chat proxy, with headless exec support. Sessions stay resumable across providers.",
@@ -39,7 +54,7 @@ const agents: Agent[] = [
   {
     name: "OpenCode",
     command: "nopencode",
-    status: "Stable",
+    status: "Provider config",
     mark: <OpenCodeMark />,
     blurb:
       "Launches with Nebius wired in as an OpenAI-compatible provider, injected only for that run. Close it and your setup is exactly as it was.",
@@ -47,7 +62,7 @@ const agents: Agent[] = [
   {
     name: "Pi Code",
     command: "npi",
-    status: "Stable",
+    status: "Provider config",
     mark: <PiMark />,
     blurb:
       "Starts with a custom Nebius provider and a temporary config directory, while normal local session history keeps persisting.",
@@ -55,7 +70,7 @@ const agents: Agent[] = [
   {
     name: "Hermes Agent",
     command: "nhermes",
-    status: "Beta",
+    status: "Provider config",
     mark: <HermesMark />,
     blurb:
       "Nous Research's agent, launched with an isolated home overlay so your sessions and skills stay native while credentials stay ephemeral.",
@@ -63,7 +78,7 @@ const agents: Agent[] = [
   {
     name: "DeepSeek Harness",
     command: "ndeepseek",
-    status: "Beta",
+    status: "Alpha",
     mark: <DeepSeekMark />,
     blurb:
       "Boots the DeepSeek web profile with Nebius layered in as a provider. Pairs naturally with DeepSeek V4 Pro and Flash.",
@@ -71,7 +86,7 @@ const agents: Agent[] = [
   {
     name: "Grok Build",
     command: "ngrok",
-    status: "Beta",
+    status: "Provider config",
     mark: <GrokMark />,
     blurb:
       "xAI's terminal harness driving Nebius models. Your key is fenced off from api.x.ai, and the model is told not to claim it is Grok.",
@@ -79,7 +94,7 @@ const agents: Agent[] = [
   {
     name: "Prime Agent",
     command: "nprime",
-    status: "Beta",
+    status: "Provider config",
     mark: <PrimeMark />,
     blurb:
       "PrimeIntellect's RLM agent, with its persistent IPython tool and subagents running on Nebius models. Your own Prime config stays untouched.",
@@ -135,18 +150,12 @@ const features = [
   },
   {
     title: "Cost tracking per session",
-    body: "Every turn is metered against the model's real per-token rates and printed as a running total when you exit.",
+    body: "Session cost estimates use reported token usage and model catalog pricing, with a summary when you exit.",
   },
   {
     title: "Config-free & self-updating",
-    body: "Nothing rewrites your agent config files. The installed binary keeps itself current from the release site.",
+    body: "CLI wrappers use temporary provider settings. Desktop integration is opt-in and persistent. The installed binary checks the release site for updates.",
   },
-];
-
-const stats = [
-  { value: "8", label: "coding agents" },
-  { value: "1", label: "install command" },
-  { value: "0", label: "config files rewritten" },
 ];
 
 const modelHighlights = [
@@ -159,6 +168,29 @@ const modelHighlights = [
 ];
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    ...pageHead(
+      "Nebius TF Relay | Open Models for Claude Code, Codex & More",
+      "Run eight coding agents on Nebius Token Factory with a local, open-source relay. Install on macOS or Linux, configure API keys, and add Tavily web search.",
+      "/",
+    ),
+    scripts: [
+      structuredData({
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        name: "Nebius TF Relay",
+        url: `${siteUrl}/`,
+        description:
+          "A local open-source relay connecting eight coding agents to models on Nebius Token Factory.",
+        applicationCategory: "DeveloperApplication",
+        operatingSystem: "macOS, Linux",
+        license: "https://opensource.org/license/mit",
+        image: `${siteUrl}/relay-logo.png`,
+        downloadUrl: `${siteUrl}/install.sh`,
+        sameAs: githubUrl,
+      }),
+    ],
+  }),
   component: Home,
 });
 
@@ -201,440 +233,312 @@ function Home() {
     [release.version, release.age].filter(Boolean).join(" · ") || "auto-updating";
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* subtle top glow */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(60%_100%_at_50%_-10%,#f1f0ff_0%,rgba(255,255,255,0)_70%)]"
-      />
-
-      <div className="mx-auto max-w-[1120px] px-6 max-[520px]:px-4">
-        {/* NAV */}
-        <header className="flex items-center gap-3 py-5">
-          <a href="/" className="flex items-center gap-2.5">
-            <BrandMark />
-            <span className="flex items-baseline gap-1.5">
-              <span className="text-[15.5px] font-semibold tracking-tight text-ink">
-                Nebius TF Relay
-              </span>
-            </span>
+    <div className="relay-home">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <header className="relay-nav wrap">
+        <a className="relay-brand" href="/" aria-label="Nebius TF Relay home">
+          <img src="/relay-logo.png" alt="" />{" "}
+          <span>
+            Nebius <b>TF Relay</b>
+          </span>
+        </a>
+        <nav aria-label="Main navigation">
+          <a href="#agents">Agents</a>
+          <a href={docsUrl}>Docs</a>
+          <a className="github-link" href={githubUrl} target="_blank" rel="noopener noreferrer">
+            <GitBranch size={16} /> GitHub
           </a>
-          <nav className="ml-auto flex items-center gap-1 text-[14px] font-medium text-muted">
+          <a className="button button-dark" href="#install">
+            Get started <ArrowRight size={16} />
+          </a>
+        </nav>
+      </header>
+      <main id="main-content">
+        <section className="relay-hero" aria-labelledby="hero-heading">
+          <img className="hero-art" src="/relay-mark.png" alt="" aria-hidden="true" />
+          <div className="wrap hero-content">
             <a
-              className="hidden rounded-lg px-3 py-2 transition hover:bg-code hover:text-ink sm:block"
-              href={docsUrl}
-            >
-              Docs
-            </a>
-            <a
-              className="hidden rounded-lg px-3 py-2 transition hover:bg-code hover:text-ink sm:block"
-              href={githubUrl}
+              className="release-note"
+              href={glmFlashUrl}
               target="_blank"
               rel="noopener noreferrer"
             >
-              GitHub
+              <span className="live-dot" /> GLM 5.3 Flash is now the default{" "}
+              <ArrowUpRight size={14} />
             </a>
-            <a
-              className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-violet px-3.5 py-2 text-[13.5px] font-semibold text-white shadow-[0_1px_2px_rgba(10,10,10,.14),0_8px_20px_-8px_rgba(106,92,243,.7)] transition hover:brightness-[1.06] active:scale-[.98]"
-              href={nebiusApiKeysUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Get API key
-              <ArrowUpRight />
-            </a>
-          </nav>
-        </header>
-
-        {/* HERO */}
-        <section className="pt-14 pb-6 text-center max-[520px]:pt-10">
-          {/* New default model. Sits above the Nebius pill so the first thing
-              a visitor reads is what they get out of the box. */}
-          <a
-            href={glmFlashUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mb-3 inline-flex items-center gap-2 rounded-full border border-line-strong bg-white/80 py-1.5 pr-3.5 pl-3 text-[13px] font-medium text-muted shadow-[0_1px_2px_rgba(10,10,10,.04)] backdrop-blur transition hover:text-ink"
-          >
-            <span className="rounded-full bg-lime/70 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-ink uppercase">
-              New
-            </span>
-            <img src="/zai-logo.svg" alt="" aria-hidden="true" className="size-4 text-ink" />
-            <span className="text-ink">GLM 5.3 Flash</span>
-            is the new default
-            <span className="text-faint">·</span>
-            <span className="text-ink">1M context</span>
-            <ArrowUpRight />
-          </a>
-          <br />
-          <a
-            href={nebiusApiKeysUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mb-7 inline-flex items-center gap-2 rounded-full border border-line-strong bg-white/80 py-1.5 pr-3.5 pl-1.5 text-[13px] font-medium text-muted shadow-[0_1px_2px_rgba(10,10,10,.04)] backdrop-blur transition hover:text-ink"
-          >
-            <img
-              src="/nebius-token-factory.png"
-              alt=""
-              aria-hidden="true"
-              className="size-5 rounded-full"
-            />
-            Powered by Nebius Token Factory
-            <span className="text-faint">·</span>
-            <span className="text-ink">open models</span>
-          </a>
-
-          <h1 className="mx-auto max-w-[860px] text-balance text-[clamp(36px,6.4vw,60px)] font-semibold leading-[1.04] tracking-[-0.02em] text-ink">
-            Run your coding agents on{" "}
-            <span className="relative whitespace-nowrap">
-              Nebius Token Factory
-              <span
-                aria-hidden="true"
-                className="absolute inset-x-0 -bottom-1 h-[10px] rounded-full bg-lime/70"
-                style={{ zIndex: -1 }}
-              />
-            </span>
-          </h1>
-          <p className="mx-auto mt-6 mb-9 max-w-[600px] text-pretty text-[18.5px] leading-relaxed text-muted">
-            A local relay that points Claude Code, Codex, OpenCode, Pi Code, and Prime Agent at open
-            models on Nebius Token Factory. The new default is GLM 5.3 Flash, a 1M-context model
-            that runs about 20x cheaper than the previous default, with Kimi, Qwen, MiniMax, and
-            DeepSeek V4 a flag away and zero edits to your real tool config.
-          </p>
-
-          {/* dark install card: the focal surface */}
-          <div className="mx-auto max-w-[680px]">
-            <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(150deg,var(--color-surface)_0%,var(--color-surface-2)_100%)] p-2 shadow-[0_1px_2px_rgba(10,10,10,.1),0_30px_60px_-30px_rgba(10,15,30,.6)]">
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute -top-16 right-6 size-40 rounded-full bg-lime/18 blur-3xl"
-              />
-              <div className="flex items-center gap-1.5 px-3 pt-1.5 pb-2">
-                <span className="size-2.5 rounded-full bg-white/15" />
-                <span className="size-2.5 rounded-full bg-white/15" />
-                <span className="size-2.5 rounded-full bg-white/15" />
-                <span className="ml-2 font-mono text-[11.5px] tracking-wide text-white/40">
-                  install.sh
+            <p className="eyebrow">YOUR AGENTS. OPEN MODELS.</p>
+            <h1 id="hero-heading">
+              Nebius <span className="relay-name">TF Relay</span>
+            </h1>
+            <p className="hero-tagline">
+              Use open models
+              <br />
+              with your existing harness.
+            </p>
+            <p className="hero-description">
+              Run the coding agents you love on Nebius Token Factory. One local relay. Eight agents.
+              Your setup stays yours.
+            </p>
+            <div className="install-terminal hero-install" id="install">
+              <div className="terminal-bar">
+                <span>
+                  <Terminal size={15} /> Terminal
                 </span>
+                <span>{releaseLabel}</span>
               </div>
-              <div className="flex items-center gap-3 rounded-xl bg-black/25 px-4 py-3.5 text-left ring-1 ring-white/[.06] max-[560px]:flex-col max-[560px]:items-stretch">
-                <span className="select-none font-mono text-[15px] text-lime">$</span>
-                <code
-                  ref={commandRef}
-                  className="min-w-0 flex-1 overflow-x-auto font-mono text-[13.5px] leading-snug whitespace-nowrap text-white/90 max-[560px]:text-[12.5px]"
-                >
-                  {installCommand}
-                </code>
+              <div className="install-command">
+                <span aria-hidden="true">$</span>
+                <code ref={commandRef}>{installCommand}</code>
                 <button
                   type="button"
+                  className="copy-button"
                   onClick={handleCopy}
+                  title="Copy install command"
                   aria-label="Copy install command"
-                  className="inline-flex min-w-[92px] cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 font-sans text-[13px] font-semibold text-white ring-1 ring-white/15 transition hover:bg-white/15 active:scale-95 data-[copied=true]:bg-lime data-[copied=true]:text-ink data-[copied=true]:ring-lime"
-                  data-copied={copyState === "copied"}
                 >
-                  {copyState === "copied" ? (
-                    <>
-                      <CheckMark /> Copied
-                    </>
-                  ) : copyState === "select" ? (
-                    "Press ⌘C"
-                  ) : (
-                    <>
-                      <CopyMark /> Copy
-                    </>
-                  )}
+                  {copyState === "copied" ? <Check size={18} /> : <Copy size={18} />}
                 </button>
               </div>
-            </div>
-            <p className="mt-3 text-[13px] text-faint">
-              macOS &amp; Linux · installs Bun if needed · stays up to date ({releaseLabel})
-            </p>
-          </div>
-
-          {/* agent command pills */}
-          <div className="mx-auto mt-9 flex max-w-[640px] flex-wrap items-center justify-center gap-2.5">
-            {agents.map((a) => (
-              <div
-                key={a.command}
-                className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-white py-1.5 pr-3.5 pl-2 text-[13.5px] shadow-[0_1px_2px_rgba(10,10,10,.03)]"
-              >
-                <span className="flex size-6 items-center justify-center text-ink">{a.mark}</span>
-                <span className="font-mono font-medium text-ink">{a.command}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* stats */}
-          <div className="mx-auto mt-10 grid max-w-[560px] grid-cols-3 gap-3">
-            {stats.map((s) => (
-              <div
-                key={s.label}
-                className="rounded-xl border border-line-strong bg-canvas px-4 py-3.5 text-left"
-              >
-                <div className="text-[26px] font-semibold leading-none text-ink tabular-nums">
-                  {s.value}
-                </div>
-                <div className="mt-1.5 text-[12.5px] font-medium leading-snug text-muted">
-                  {s.label}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mx-auto mt-7 max-w-[780px] rounded-2xl border border-line-strong bg-white px-4 py-3 shadow-[0_1px_2px_rgba(10,10,10,.03)]">
-            <div className="flex flex-wrap items-center justify-center gap-2.5">
-              {modelHighlights.map((model) => (
-                <span
-                  key={model.name}
-                  className="inline-flex items-center gap-2 rounded-full bg-code px-3 py-1.5 text-[12.5px] text-muted"
-                >
-                  <span className="font-semibold text-ink">{model.name}</span>
-                  <span className="text-faint">·</span>
-                  <span>{model.note}</span>
+              <div className="terminal-foot">
+                <span>macOS / Linux</span>
+                <span role="status">
+                  {copyState === "copied"
+                    ? "Copied to clipboard"
+                    : copyState === "select"
+                      ? "Clipboard unavailable; command selected"
+                      : "Bun is installed automatically if needed"}
                 </span>
-              ))}
+              </div>
+            </div>
+            <div className="hero-actions">
+              <a className="text-link" href={docsUrl}>
+                Read the docs <ArrowUpRight size={16} />
+              </a>
+            </div>
+            <div className="hero-meta">
+              <span>
+                <Check size={14} /> Open source
+              </span>
+              <span>
+                <Check size={14} /> macOS & Linux
+              </span>
+              <span>
+                <Check size={14} /> Config-free
+              </span>
             </div>
           </div>
         </section>
-
-        {/* START / HOW IT WORKS */}
-        <section className="mt-20 grid gap-4 lg:grid-cols-[1.35fr_1fr]">
-          <div className="rounded-2xl border border-line-strong bg-white p-7 max-[520px]:p-6">
-            <SectionEyebrow>Start relaying</SectionEyebrow>
-            <h2 className="mt-3 mb-6 text-[24px] font-semibold tracking-tight text-ink">
-              Three commands from zero to running.
-            </h2>
-            <ol className="flex flex-col gap-5">
-              {steps.map((step, i) => (
-                <li key={step.title} className="flex gap-4">
-                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-ink text-[13px] font-semibold text-white tabular-nums">
-                    {i + 1}
-                  </span>
-                  <div>
-                    <h3 className="text-[15.5px] font-semibold text-ink">{step.title}</h3>
-                    <p className="mt-1 text-[14.5px] leading-relaxed text-muted [&_a.link]:font-medium [&_a.link]:text-violet [&_a.link]:underline [&_a.link]:decoration-violet/30 [&_a.link]:underline-offset-2 hover:[&_a.link]:decoration-violet [&_code]:rounded [&_code]:bg-code [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px] [&_code]:text-ink">
-                      {step.body}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+        <div className="provider-strip wrap">
+          <ProviderBrand provider="nebius" />
+          <span className="provider-divider" />
+          <ProviderBrand provider="tavily" />
+        </div>
+        <section className="agent-strip wrap" aria-label="Compatible agents">
+          <span className="eyebrow">
+            SAME TOOLS.
+            <br />
+            MORE POSSIBILITIES.
+          </span>
+          <div>
+            {agents.map((agent) => (
+              <a href="#agents" key={agent.command}>
+                {agent.mark}
+                <span>{agent.name}</span>
+              </a>
+            ))}
           </div>
-
-          {/* dark accent card: echoes the dashboard's dedicated-endpoints panel */}
-          <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(155deg,var(--color-surface)_0%,var(--color-surface-2)_100%)] p-7 max-[520px]:p-6">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -bottom-20 -right-10 size-56 rounded-full bg-violet/25 blur-3xl"
-            />
-            <div className="relative">
-              <h3 className="text-[26px] font-semibold leading-tight tracking-tight text-lime">
-                One key.
-                <br />
-                Every agent.
-              </h3>
-              <p className="mt-4 max-w-[280px] text-[14.5px] leading-relaxed text-white/65">
-                One Nebius Token Factory key powers all eight agents through a single local proxy.
-                The model list is pulled live from Nebius, with bundled fallbacks for new DeepSeek
-                V4 models while regional catalogs catch up.
-              </p>
-              <div className="mt-6 flex flex-wrap gap-2">
-                {["GLM 5.3 Flash", "Kimi K3", "Kimi K2.6", "DeepSeek V4 Flash", "Qwen 3.5"].map(
-                  (m) => (
-                    <span
-                      key={m}
-                      className="rounded-full bg-white/[.08] px-3 py-1.5 font-mono text-[12px] text-white/75 ring-1 ring-white/10"
-                    >
-                      {m}
-                    </span>
-                  ),
-                )}
+        </section>
+        <section className="install-section wrap">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">01 / GET CONNECTED</p>
+              <h2>
+                A small install.
+                <br />A bigger choice.
+              </h2>
+            </div>
+            <p>
+              From your terminal to open models in three steps.
+              <br />
+              No changes to your existing agent configuration.
+            </p>
+          </div>
+          <ol className="setup-steps">
+            {steps.map((step, i) => (
+              <li key={step.title}>
+                <span className="step-number">0{i + 1}</span>
+                <h3>{step.title}</h3>
+                <p>{step.body}</p>
+                {i === 1 ? (
+                  <code>nebiusrelay configure</code>
+                ) : i === 2 ? (
+                  <code>ncodex</code>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        </section>
+        <section className="agents-section" id="agents">
+          <div className="wrap">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">02 / PICK YOUR AGENT</p>
+                <h2>
+                  Familiar tools.
+                  <br />
+                  Fresh possibilities.
+                </h2>
               </div>
-              <a
-                href={nebiusApiKeysUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-7 inline-flex items-center gap-1.5 rounded-lg bg-lime px-4 py-2.5 text-[13.5px] font-semibold text-ink transition hover:brightness-[1.03] active:scale-[.98]"
-              >
-                Get a Token Factory key
-                <ArrowUpRight />
+              <p>
+                Use the workflow you already know.
+                <br />
+                Just give it a different engine.
+              </p>
+            </div>
+            <div className="agents-grid">
+              {agents.map((agent) => (
+                <article className="agent-item" key={agent.name}>
+                  <div className="agent-top">
+                    <span className="agent-mark">{agent.mark}</span>
+                    <span
+                      className={
+                        agent.status === "Alpha" ? "agent-status" : "agent-status supported"
+                      }
+                    >
+                      {agent.status}
+                    </span>
+                  </div>
+                  <h3>{agent.name}</h3>
+                  <p>{agent.blurb}</p>
+                  <code>
+                    <span aria-hidden="true">$ </span>
+                    {agent.command}
+                  </code>
+                </article>
+              ))}
+            </div>
+            <div className="desktop-integration">
+              <div>
+                <p className="eyebrow">DESKTOP INTEGRATION / ALPHA</p>
+                <h3>ChatGPT / Codex Desktop</h3>
+                <p>
+                  An optional managed profile routes compatible desktop coding tasks through Relay.
+                  It changes the shared Codex config until you restore it; it does not replace
+                  models in ordinary ChatGPT web chats.
+                </p>
+              </div>
+              <a className="text-link" href="/docs#desktop">
+                Desktop setup <ArrowUpRight size={16} />
               </a>
             </div>
           </div>
         </section>
-
-        {/* AGENT GRID */}
-        <section className="mt-20">
-          <SectionEyebrow>Supported harnesses</SectionEyebrow>
-          <h2 className="mt-3 mb-7 max-w-[620px] text-[26px] font-semibold tracking-tight text-ink">
-            The coding agents you already use, on open models.
-          </h2>
-          <div className="grid gap-3.5 sm:grid-cols-2">
-            {agents.map((a) => (
-              <article
-                key={a.name}
-                className="group flex flex-col rounded-2xl border border-line-strong bg-white p-6 transition hover:border-faint hover:shadow-[0_1px_2px_rgba(10,10,10,.04),0_16px_40px_-24px_rgba(10,15,30,.28)]"
+        <section className="models-section wrap">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">03 / FIND YOUR MODEL</p>
+              <h2>
+                One key.
+                <br />
+                An open model lineup.
+              </h2>
+            </div>
+            <div>
+              <p>
+                Choose a model for the task at hand.
+                <br />
+                Switch with a flag. Keep your workflow.
+              </p>
+              <a
+                className="text-link"
+                href={nebiusApiKeysUrl}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <div className="flex items-center justify-between">
-                  <span className="flex size-11 items-center justify-center rounded-xl border border-line-strong bg-canvas text-ink">
-                    {a.mark}
-                  </span>
-                  <StatusBadge status={a.status} />
-                </div>
-                <div className="mt-4 flex items-baseline gap-2.5">
-                  <h3 className="text-[17px] font-semibold text-ink">{a.name}</h3>
-                  <code className="font-mono text-[13px] text-violet">{a.command}</code>
-                </div>
-                <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{a.blurb}</p>
-              </article>
+                Get a Token Factory key <ArrowUpRight size={16} />
+              </a>
+            </div>
+          </div>
+          <div className="model-list">
+            {modelHighlights.map((model, i) => (
+              <a
+                href={i === 0 ? glmFlashUrl : "https://tokenfactory.nebius.com/endpoints"}
+                target="_blank"
+                rel="noopener noreferrer"
+                key={model.name}
+              >
+                <span className="model-index">0{i + 1}</span>
+                <h3>{model.name}</h3>
+                <span>{model.note}</span>
+                <ArrowUpRight size={18} />
+              </a>
             ))}
           </div>
         </section>
-
-        {/* FEATURES */}
-        <section className="mt-20">
-          <SectionEyebrow>Why route through the Relay</SectionEyebrow>
-          <div className="mt-6 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-            {features.map((f) => (
-              <div key={f.title} className="rounded-2xl border border-line-strong bg-white p-5">
-                <span className="mb-4 block h-1 w-8 rounded-full bg-lime" />
-                <h3 className="text-[15px] font-semibold text-ink">{f.title}</h3>
-                <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{f.body}</p>
-              </div>
-            ))}
+        <section className="features-section">
+          <div className="wrap">
+            <p className="eyebrow">BUILT TO STAY OUT OF YOUR WAY</p>
+            <div className="feature-grid">
+              {features.map((feature, i) => {
+                const Icon = [Cable, Search, ChartNoAxesCombined, ShieldCheck][i];
+                return (
+                  <article key={feature.title}>
+                    {i === 1 ? (
+                      <img
+                        className="feature-provider-logo"
+                        src="/tavily-icon.png"
+                        alt="Tavily"
+                        width="32"
+                        height="32"
+                      />
+                    ) : (
+                      <Icon size={24} />
+                    )}
+                    <h3>{feature.title}</h3>
+                    <p>{feature.body}</p>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         </section>
-
-        {/* CLOSING CTA */}
-        <section className="mt-20 mb-6 overflow-hidden rounded-2xl border border-line-strong bg-canvas px-8 py-12 text-center max-[520px]:px-5">
-          <h2 className="mx-auto max-w-[560px] text-balance text-[28px] font-semibold tracking-tight text-ink">
-            Point your agents at Nebius in one line.
+        <section className="closing-section wrap">
+          <img src="/relay-logo.png" alt="" width="42" height="42" />
+          <p className="eyebrow">LESS SETUP. MORE BUILDING.</p>
+          <h2>
+            Your next coding session,
+            <br />
+            powered by Open Models.
           </h2>
-          <p className="mx-auto mt-3 mb-7 max-w-[480px] text-[15px] leading-relaxed text-muted">
-            Free to install, config-free, and reversible. Your subscriptions and logins stay exactly
-            where they are.
-          </p>
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="inline-flex items-center gap-2.5 rounded-xl bg-ink px-5 py-3 font-mono text-[13.5px] text-white shadow-[0_1px_2px_rgba(10,10,10,.14),0_16px_40px_-20px_rgba(10,15,30,.6)] transition hover:brightness-110 active:scale-[.98]"
-          >
-            <span className="text-lime">$</span>
-            <span className="max-[520px]:hidden">
-              curl -fsSL nebius-tf-relay.vercel.app/install.sh | sh
-            </span>
-            <span className="hidden max-[520px]:inline">curl … | sh</span>
-            <span className="ml-1 text-white/50">{copyState === "copied" ? "✓" : "⧉"}</span>
-          </button>
+          <a href="#install" className="button button-dark">
+            Get started <ArrowRight size={17} />
+          </a>
+          <p>Free to install. MIT licensed. Yours to explore.</p>
         </section>
-
-        {/* FOOTER */}
-        <footer className="mt-4 flex flex-col gap-4 border-t border-line py-8 text-[13px] text-muted sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2.5">
-            <BrandMark />
-            <span className="font-semibold text-ink">Nebius TF Relay</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 sm:ml-auto">
-            <a className="transition hover:text-ink" href={docsUrl}>
-              Docs
-            </a>
-            <a
-              className="transition hover:text-ink"
-              href={githubUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              GitHub
-            </a>
-            <a
-              className="transition hover:text-ink"
-              href={llmsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              llms.txt
-            </a>
-            <a
-              className="transition hover:text-ink"
-              href={nebiusApiKeysUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Nebius keys
-            </a>
-            <span className="text-faint">MIT licensed</span>
-          </div>
-        </footer>
-      </div>
+      </main>
+      <footer className="relay-footer wrap">
+        <a href="/" className="relay-brand">
+          <img src="/relay-logo.png" alt="" />
+          <span>
+            Nebius <b>TF Relay</b>
+          </span>
+        </a>
+        <span>An open-source project by Studio1.</span>
+        <nav aria-label="Footer navigation">
+          <a href={docsUrl}>Docs</a>
+          <a href={githubUrl} target="_blank" rel="noopener noreferrer">
+            GitHub
+          </a>
+          <a href={llmsUrl}>llms.txt</a>
+        </nav>
+      </footer>
     </div>
   );
 }
 
 /* ---------- small pieces ---------- */
-
-function SectionEyebrow({ children }: Readonly<{ children: ReactNode }>) {
-  return (
-    <span className="inline-flex items-center gap-2 text-[12px] font-semibold tracking-[0.08em] text-violet uppercase">
-      <span className="size-1.5 rounded-full bg-lime" />
-      {children}
-    </span>
-  );
-}
-
-function StatusBadge({ status }: Readonly<{ status: "Stable" | "Beta" }>) {
-  const stable = status === "Stable";
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase"
-      style={{
-        background: stable ? "rgba(198,241,53,.16)" : "rgba(106,92,243,.1)",
-        color: stable ? "var(--color-lime-ink)" : "var(--color-violet)",
-      }}
-    >
-      <span
-        className="size-1.5 rounded-full"
-        style={{ background: stable ? "#7fae00" : "var(--color-violet)" }}
-      />
-      {status === "Stable" ? "Supported" : "Beta"}
-    </span>
-  );
-}
-
-function BrandMark() {
-  return (
-    <span className="relative flex size-8 items-center justify-center rounded-[9px] bg-ink">
-      <span className="absolute inset-0 rounded-[9px] bg-[radial-gradient(120%_120%_at_20%_0%,rgba(198,241,53,.4)_0%,rgba(198,241,53,0)_55%)]" />
-      <PiMarkWhite />
-    </span>
-  );
-}
-
-function PiMarkWhite() {
-  return (
-    <svg className="relative size-[18px]" viewBox="0 0 800 800" aria-hidden="true">
-      <path
-        fill="#c6f135"
-        fillRule="evenodd"
-        d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"
-      />
-      <path fill="#ffffff" d="M517.36 400H634.72V634.72H517.36Z" />
-    </svg>
-  );
-}
-
-function ArrowUpRight() {
-  return (
-    <svg className="size-3.5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M7 17L17 7M17 7H8M17 7v9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 function OpenCodeMark() {
   return (
@@ -748,34 +652,6 @@ function PrimeMark() {
       <path
         fill="currentColor"
         d="M55.133 131.294c-1.075 7.152 1.655 13.272 12.826 13.192h-.006c9.541-.389 20.337-6.164 30.884-13.549 6.965-4.879 12.987-10.024 16.89-17.626 2.872-5.588 1.395-10.072-2.933-13.993-1.908-1.729-3.73-1.921-5.867.166-7.584 7.424-17.026 11.475-26.722 15.551-2.47 1.039-5.284 1.558-8.118 2.08-7.551 1.393-15.243 2.811-16.954 14.179Z"
-      />
-    </svg>
-  );
-}
-
-function CopyMark() {
-  return (
-    <svg className="size-[14px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="8" y="8" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.8" />
-      <path
-        d="M5 15.5V6.8C5 5.8 5.8 5 6.8 5h8.7"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function CheckMark() {
-  return (
-    <svg className="size-[14px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M5 12.5l4.2 4L19 7.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );

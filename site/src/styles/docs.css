@@ -1,0 +1,340 @@
+.docs-page {
+  --color-ink: #171917;
+  --color-muted: #596153;
+  --color-faint: #626c5b;
+  --color-line: #e0e5da;
+  --color-code: #f2f5ef;
+  --color-violet: #a32c40;
+  --color-violet-soft: #fff0f2;
+  --color-lime: #ff6376;
+  --color-lime-ink: #842136;
+}
+.docs-header {
+  border-bottom: 1px solid var(--relay-line);
+}
+.docs-header nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.docs-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 60px;
+}
+.docs-sidebar {
+  border-right: 1px solid var(--relay-line);
+  padding-right: 26px;
+}
+.docs-sidebar-inner {
+  position: sticky;
+  top: 24px;
+  padding-block: 30px;
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+}
+.docs-back {
+  display: block;
+  font-size: 11px;
+  color: #78826e;
+  margin-bottom: 28px;
+}
+.docs-back strong {
+  color: #31382b;
+  font-weight: 500;
+}
+.docs-search {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid #dce3d4;
+  border-radius: 5px;
+  margin-bottom: 28px;
+  color: #748269;
+}
+.docs-search:focus-within {
+  outline: 2px solid #769b45;
+  outline-offset: 2px;
+}
+.docs-search input {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-size: 12px;
+  color: #26301e;
+}
+.docs-sidebar .eyebrow {
+  font-size: 10px;
+  margin-bottom: 12px;
+}
+.docs-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.docs-sidebar nav a {
+  padding: 9px 12px;
+  border-left: 2px solid transparent;
+  color: #636e59;
+  font-size: 13px;
+}
+.docs-sidebar nav a:hover {
+  background: #f6f8f2;
+  color: #1f2d12;
+}
+.docs-sidebar nav a[aria-current] {
+  border-color: #8bb83a;
+  background: #f0f5e8;
+  color: #2e4513;
+  font-weight: 600;
+}
+.docs-sidebar-links {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--relay-line);
+  display: grid;
+  gap: 14px;
+  font-size: 12px;
+  color: #6e7863;
+}
+.docs-sidebar-links a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.docs-no-results {
+  font-size: 12px;
+  color: #66715d;
+  padding: 8px 0;
+}
+.docs-content {
+  min-width: 0;
+  padding-block: 44px 24px;
+}
+.docs-intro {
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--relay-line);
+}
+.docs-intro h1 {
+  margin: 0;
+  font-size: 44px;
+  line-height: 1.12;
+  font-weight: 550;
+}
+.docs-intro > p:not(.eyebrow) {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #69735e;
+  max-width: 600px;
+  margin-top: 22px;
+}
+.docs-provider-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-block: 28px;
+}
+.docs-quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.docs-quick-links a {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.docs-quick-links a:hover {
+  color: #527721;
+}
+.docs-section {
+  margin-top: 52px;
+  scroll-margin-top: 28px;
+}
+.docs-section h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 25px;
+}
+.section-anchor {
+  color: #9aaa8c;
+  padding: 4px;
+}
+.section-anchor:hover {
+  color: #526c31;
+}
+.docs-section p {
+  font-size: 14px;
+  line-height: 1.85;
+}
+.docs-section code {
+  overflow-wrap: anywhere;
+}
+.docs-section .rounded-xl {
+  border-radius: 6px;
+}
+.docs-table {
+  margin-top: 20px;
+  overflow-x: auto;
+  border-block: 1px solid var(--relay-line);
+}
+.docs-table table {
+  min-width: 570px;
+}
+.docs-table td {
+  font-size: 13px;
+  padding: 14px 12px;
+  line-height: 1.7;
+}
+.docs-table th {
+  font-size: 10px;
+  padding: 12px;
+  color: #647457;
+}
+.docs-table tr:hover td {
+  background: #fafbf8;
+}
+.docs-table code {
+  font-size: 12px;
+}
+.docs-copy-block {
+  margin-top: 14px;
+  position: relative;
+  background: #1c201b;
+  border-radius: 6px;
+  color: #e3e9dc;
+}
+.docs-command {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+}
+.docs-command > span {
+  color: #ff6376;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.docs-command code {
+  min-width: 0;
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+}
+.docs-command .copy-button {
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+}
+.docs-copy-status {
+  display: block;
+  min-height: 22px;
+  padding: 0 16px 6px;
+  font-size: 10px;
+  color: #cbdcae;
+}
+.docs-provider-inline {
+  margin-bottom: 18px;
+}
+.docs-faq {
+  border-bottom: 1px solid var(--relay-line);
+  padding: 18px 0;
+}
+.docs-faq summary {
+  font-size: 14px;
+  font-weight: 550;
+  cursor: pointer;
+}
+.docs-faq[open] summary {
+  margin-bottom: 14px;
+}
+.docs-faq summary::marker {
+  color: #748e52;
+}
+.docs-faq p a {
+  text-decoration: underline;
+}
+.docs-footer {
+  margin-top: 56px;
+  padding-top: 20px;
+  border-top: 1px solid var(--relay-line);
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  color: #748269;
+  font-size: 11px;
+}
+.docs-footer a {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.docs-mobile-nav {
+  display: none;
+}
+@media (max-width: 900px) {
+  .docs-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .docs-sidebar {
+    display: none;
+  }
+  .docs-mobile-nav {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #fff;
+    padding: 14px 0;
+    border-bottom: 1px solid #e0e5da;
+    margin-bottom: 26px;
+    font-size: 12px;
+  }
+  .docs-mobile-nav select {
+    flex: 1;
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid #dce3d4;
+    border-radius: 4px;
+    background: #f6f8f2;
+  }
+  .docs-content {
+    padding-top: 0;
+  }
+  .docs-section {
+    scroll-margin-top: 85px;
+  }
+}
+@media (max-width: 640px) {
+  .docs-intro h1 {
+    font-size: 33px;
+  }
+  .docs-intro > p:not(.eyebrow) {
+    font-size: 14px;
+  }
+  .docs-section {
+    margin-top: 40px;
+  }
+  .docs-section h2 {
+    font-size: 23px;
+  }
+  .docs-provider-row {
+    gap: 18px;
+  }
+  .docs-quick-links {
+    gap: 14px;
+  }
+  .docs-header nav > a:not(.button) {
+    display: none;
+  }
+}
