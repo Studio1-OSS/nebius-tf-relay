@@ -16,7 +16,7 @@
   top: -100px;
   z-index: 50;
   padding: 12px 18px;
-  background: #ff6376;
+  background: #38b889;
   color: #17210c;
   border-radius: 4px;
 }
@@ -173,11 +173,11 @@
   color: white;
 }
 .relay-home .button-lime {
-  background: #ff6376;
+  background: #38b889;
   color: #181c10;
 }
 .relay-home .button-lime:hover {
-  background: #ff8594;
+  background: #67d6ae;
 }
 .relay-hero {
   position: relative;
@@ -214,7 +214,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #ff6376;
+  background: #38b889;
   flex-shrink: 0;
 }
 .eyebrow {
@@ -226,7 +226,7 @@
   margin: 0 0 18px;
 }
 .relay-hero .eyebrow {
-  color: #ff6376;
+  color: #38b889;
 }
 .relay-hero h1 {
   font-size: 64px;
@@ -397,7 +397,7 @@
   padding: 22px;
 }
 .install-command > span {
-  color: #ff6376;
+  color: #38b889;
 }
 .install-command code {
   flex: 1;
@@ -419,7 +419,7 @@
   cursor: pointer;
 }
 .copy-button:hover {
-  color: #ff6376;
+  color: #38b889;
   background: #30392a;
 }
 .terminal-foot {
@@ -563,7 +563,7 @@
   gap: 40px;
 }
 .feature-grid svg {
-  color: #ff6376;
+  color: #38b889;
 }
 .feature-grid h3 {
   font-size: 15px;

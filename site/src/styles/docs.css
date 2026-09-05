@@ -4,10 +4,10 @@
   --color-faint: #626c5b;
   --color-line: #e0e5da;
   --color-code: #f2f5ef;
-  --color-violet: #a32c40;
-  --color-violet-soft: #fff0f2;
-  --color-lime: #ff6376;
-  --color-lime-ink: #842136;
+  --color-violet: #176a4d;
+  --color-violet-soft: #edf9f3;
+  --color-lime: #38b889;
+  --color-lime-ink: #15543f;
 }
 .docs-header {
   border-bottom: 1px solid var(--relay-line);
@@ -217,7 +217,7 @@
   padding: 14px 16px;
 }
 .docs-command > span {
-  color: #ff6376;
+  color: #38b889;
   font-family: var(--font-mono);
   font-size: 13px;
 }
