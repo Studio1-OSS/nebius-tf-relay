@@ -129,7 +129,13 @@
 }
 .relay-brand b {
   font-weight: 450;
-  color: var(--relay-muted);
+  color: #47720b;
+}
+.relay-name {
+  color: #47720b;
+}
+.relay-hero .relay-name {
+  color: #c6f135;
 }
 .relay-nav nav,
 .relay-footer nav {

@@ -260,7 +260,9 @@ function Docs() {
             </select>
           </div>
           <div className="docs-intro">
-            <p className="eyebrow">NEBIUS TF RELAY / DOCS</p>
+            <p className="eyebrow">
+              NEBIUS <span className="relay-name">TF RELAY</span> / DOCS
+            </p>
             <h1>Documentation</h1>
             <p>
               Everything you need to run your coding agents on Nebius Token Factory, with optional

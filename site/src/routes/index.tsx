@@ -269,7 +269,9 @@ function Home() {
               <ArrowUpRight size={14} />
             </a>
             <p className="eyebrow">YOUR AGENTS. OPEN MODELS.</p>
-            <h1 id="hero-heading">Nebius TF Relay</h1>
+            <h1 id="hero-heading">
+              Nebius <span className="relay-name">TF Relay</span>
+            </h1>
             <p className="hero-tagline">
               Use open models
               <br />
