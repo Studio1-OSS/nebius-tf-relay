@@ -355,8 +355,9 @@ function Home() {
             <div>
               <p className="eyebrow">01 / GET CONNECTED</p>
               <h2>
-                A small install.
-                <br />A bigger choice.
+                Single install.
+                <br />
+                Multiple uses.
               </h2>
             </div>
             <p>
