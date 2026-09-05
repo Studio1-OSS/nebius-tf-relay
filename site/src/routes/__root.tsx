@@ -8,30 +8,12 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      {
-        title: "Nebius TF Relay - Run Claude Code, Codex, OpenCode & Pi Code on Nebius",
-      },
-      {
-        name: "description",
-        content:
-          "A local relay that points Claude Code, Codex, OpenCode, and Pi Code at open models on Nebius Token Factory - short commands, zero edits to your real tool config.",
-      },
-      { property: "og:title", content: "Nebius TF Relay" },
-      {
-        property: "og:description",
-        content:
-          "Run your coding agents on Nebius Token Factory open models. One install, four harnesses, config-free.",
-      },
-      { property: "og:image", content: "/nebius-token-factory.png" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "Nebius TF Relay" },
-      { name: "twitter:image", content: "/nebius-token-factory.png" },
+      { name: "theme-color", content: "#171b16" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/nebius-token-factory.png", type: "image/png" },
-      { rel: "apple-touch-icon", href: "/nebius-token-factory.png" },
+      { rel: "icon", href: "/relay-favicon.png", type: "image/png", sizes: "32x32" },
+      { rel: "apple-touch-icon", href: "/relay-apple-touch-icon.png", sizes: "180x180" },
       { rel: "llms-txt", href: "/llms.txt" },
     ],
   }),
