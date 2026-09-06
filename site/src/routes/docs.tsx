@@ -52,6 +52,7 @@ const sections = [
   { id: "desktop", label: "Desktop (alpha)" },
   { id: "commands", label: "Commands" },
   { id: "models", label: "Models" },
+  { id: "images", label: "Images & vision" },
   { id: "web-search", label: "Web search" },
   { id: "metering", label: "Cost metering" },
   { id: "env", label: "Environment" },
@@ -448,6 +449,29 @@ function Docs() {
             </Callout>
           </Section>
 
+          <Section id="images" title="Images & vision">
+            <P>
+              In Relay 0.15.3 and later, select a vision-capable model explicitly when launching
+              Codex. The default GLM model is text-only. Image options belong to Codex, not every
+              harness; other agents keep their native attachment controls.
+            </P>
+            <CopyBox text="ncodex --model moonshotai/Kimi-K2.6" />
+            <P>
+              Use Codex&apos;s clipboard-image shortcut where your terminal supports it. Normal
+              terminal paste may paste text only; the relay does not monitor your clipboard. For a
+              reliable file-based alternative, save the image on the machine running Codex:
+            </P>
+            <CopyBox
+              text={
+                'ncodex --model moonshotai/Kimi-K2.6 --image "/path/to/screenshot.png" "Describe this image"'
+              }
+            />
+            <Callout>
+              A plain file path in prompt text is not the same as attaching image bytes. Use the
+              native image option and a model whose catalog lists image input. Clipboard access may
+              be unavailable over SSH or in some terminal environments.
+            </Callout>
+          </Section>
           <Section id="web-search" title="Web search">
             <div className="docs-provider-inline">
               <ProviderBrand provider="tavily" />

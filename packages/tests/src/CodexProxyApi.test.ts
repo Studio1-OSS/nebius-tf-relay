@@ -1631,7 +1631,15 @@ describe("Codex Responses proxy tool compatibility", () => {
     ]);
   });
 
-  test("forwards Responses input_image parts to Nebius vision message content", async () => {
+  test.each([
+    { type: "input_image", image_url: "data:image/png;base64,abc123", detail: "high" },
+    { type: "image_url", image_url: { url: "data:image/png;base64,abc123", detail: "high" } },
+    {
+      type: "input_image",
+      image_url: { url: "data:image/png;base64,abc123", detail: "low" },
+      detail: "high",
+    },
+  ])("forwards image attachments to Nebius without losing bytes: %j", async (imagePart) => {
     const requests: unknown[] = [];
     vi.stubGlobal(
       "fetch",
@@ -1652,10 +1660,7 @@ describe("Codex Responses proxy tool compatibility", () => {
         {
           type: "message",
           role: "user",
-          content: [
-            { type: "input_text", text: "Describe this." },
-            { type: "input_image", image_url: "data:image/png;base64,abc123", detail: "high" },
-          ],
+          content: [{ type: "input_text", text: "Describe this." }, imagePart],
         },
       ],
     });

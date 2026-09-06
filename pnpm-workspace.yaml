@@ -25,3 +25,5 @@ minimumReleaseAgeExclude:
   - "@oxfmt/binding-win32-ia32-msvc@0.57.0"
   - "@oxfmt/binding-win32-x64-msvc@0.57.0"
   - oxfmt@0.57.0
+patchedDependencies:
+  "@clack/core@0.3.5": patches/@clack__core@0.3.5.patch

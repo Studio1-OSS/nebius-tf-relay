@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { codexModelCatalogJson } from "./catalog.js";
+import { extractCodexModelArg } from "./launch-args.js";
 import { CODEX_AUTH_ENV, CODEX_PROVIDER_ID, resolveCodexModel } from "./defaults.js";
 import { codexArgsIgnoreUserConfig, ensureCodexGenericUserDefaults } from "./user-config.js";
 import {} from "../daemon/launch.js";
@@ -19,8 +20,6 @@ export type CodexLaunchResult = {
   status: number | null;
   signal: NodeJS.Signals | null;
 };
-
-const MODEL_OVERRIDE_FLAGS = new Set(["--model", "-m"]);
 
 /**
  * `--no-mcp` is a nebiusrelay convenience: Codex connects to every MCP server
@@ -50,12 +49,13 @@ function applyNoMcp(args: string[]): string[] {
 }
 
 export async function runCodexNebius(options: CodexLaunchOptions): Promise<CodexLaunchResult> {
-  const args = applyNoMcp(options.args ?? []);
+  const invocation = extractCodexModelArg(options.args ?? []);
+  const args = applyNoMcp(invocation.args);
   if (!codexArgsIgnoreUserConfig(args)) {
     await ensureCodexGenericUserDefaults(options.home);
   }
 
-  const selectedModel = resolveCodexModel(options.modelId);
+  const selectedModel = resolveCodexModel(options.modelId ?? invocation.modelId);
   let catalog: { path: string; cleanup: () => void } | undefined;
   const result: ProxiedSessionResult = await runProxiedSession({
     agent: "codex",
@@ -75,15 +75,18 @@ export async function runCodexNebius(options: CodexLaunchOptions): Promise<Codex
       return catalog;
     },
     buildEnv: ({ authToken }) => buildCodexEnv(authToken),
-    buildArgs: ({ proxyUrl, authToken, modelId, beforeSpawnResult }) => [
-      ...codexArgsWithoutModelOverrides(args),
-      ...codexConfigArgs(
+    buildArgs: ({ proxyUrl, authToken, modelId, beforeSpawnResult }) => {
+      const configArgs = codexConfigArgs(
         proxyUrl,
         authToken,
         modelId,
         (beforeSpawnResult as { path: string; cleanup: () => void } | undefined)?.path ?? "",
-      ),
-    ],
+      );
+      const separator = args.indexOf("--");
+      return separator < 0
+        ? [...args, ...configArgs]
+        : [...args.slice(0, separator), ...configArgs, ...args.slice(separator)];
+    },
     afterDeregister: () => catalog?.cleanup(),
   });
   return result;
@@ -135,23 +138,4 @@ function writeCodexModelCatalog(): { path: string; cleanup: () => void } {
       }
     },
   };
-}
-
-function codexArgsWithoutModelOverrides(args: string[]): string[] {
-  const sanitized: string[] = [];
-  for (let i = 0; i < args.length; i += 1) {
-    const arg = args[i];
-    if (arg === undefined) {
-      continue;
-    }
-    if (MODEL_OVERRIDE_FLAGS.has(arg)) {
-      i += 1;
-      continue;
-    }
-    if (arg.startsWith("--model=")) {
-      continue;
-    }
-    sanitized.push(arg);
-  }
-  return sanitized;
 }

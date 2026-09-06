@@ -72,7 +72,7 @@ export async function runConfigure(home = os.homedir()): Promise<boolean> {
   if (!apiKey) {
     const entered = await clack.password({
       message: "Nebius API key (from https://tokenfactory.nebius.com/?modals=create-api-key):",
-      validate: (value) => (value.trim() ? undefined : "An API key is required"),
+      validate: (value) => (value?.trim() ? undefined : "An API key is required"),
     });
     if (clack.isCancel(entered)) {
       clack.cancel("Cancelled.");
@@ -91,7 +91,6 @@ export async function runConfigure(home = os.homedir()): Promise<boolean> {
     const enteredTavily = await clack.password({
       message:
         "Tavily API key for web search (from https://app.tavily.com - press Enter to skip; web search will be disabled):",
-      validate: (value) => (value.trim() || value === "" ? undefined : undefined),
     });
     if (clack.isCancel(enteredTavily)) {
       clack.cancel("Cancelled.");

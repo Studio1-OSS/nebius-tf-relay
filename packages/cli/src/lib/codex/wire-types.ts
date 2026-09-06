@@ -3,7 +3,7 @@ import type { ModelDefinition } from "@nebiusrelay/models";
 export type ResponsesContentPart = {
   type?: string;
   text?: string;
-  image_url?: string;
+  image_url?: string | { url: string; detail?: string };
   detail?: string;
 };
 

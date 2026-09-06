@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@clack/core@0.3.5': 29b1ec8ff5bb1069b730638df861ee4cbb7dfcbad82446e73503693262588122
+
 importers:
 
   .:
@@ -40,6 +43,9 @@ importers:
 
   packages/tests:
     devDependencies:
+      '@clack/prompts':
+        specifier: ^0.8.2
+        version: 0.8.2
       '@nebiusrelay/cli':
         specifier: workspace:*
         version: link:../cli
@@ -2316,14 +2322,14 @@ snapshots:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
 
-  '@clack/core@0.3.5':
+  '@clack/core@0.3.5(patch_hash=29b1ec8ff5bb1069b730638df861ee4cbb7dfcbad82446e73503693262588122)':
     dependencies:
       picocolors: 1.1.1
       sisteransi: 1.0.5
 
   '@clack/prompts@0.8.2':
     dependencies:
-      '@clack/core': 0.3.5
+      '@clack/core': 0.3.5(patch_hash=29b1ec8ff5bb1069b730638df861ee4cbb7dfcbad82446e73503693262588122)
       picocolors: 1.1.1
       sisteransi: 1.0.5
 

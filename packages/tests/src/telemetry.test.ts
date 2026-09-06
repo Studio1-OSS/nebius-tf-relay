@@ -17,6 +17,7 @@ describe("telemetry", () => {
 
   afterEach(async () => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     await rm(tmpDir, { recursive: true, force: true });
   });
@@ -87,14 +88,19 @@ describe("telemetry", () => {
 
 describe("context trim alarm (telemetry + stderr)", () => {
   let stderrWrite: ReturnType<typeof vi.spyOn>;
+  let tmpDir: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(path.join(os.tmpdir(), "nebiusrelay-trim-alarm-"));
+    vi.spyOn(os, "homedir").mockReturnValue(tmpDir);
     stderrWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     vi.unstubAllEnvs();
+    await rm(tmpDir, { recursive: true, force: true });
   });
 
   test("writes an always-on stderr warning and fires a context_trim telemetry event", async () => {
