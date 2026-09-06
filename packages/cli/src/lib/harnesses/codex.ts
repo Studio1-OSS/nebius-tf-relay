@@ -1,5 +1,6 @@
 import { resolveCodexModel } from "../codex/defaults.js";
 import { runCodexNebius } from "../codex/core.js";
+import { extractCodexModelArg } from "../codex/launch-args.js";
 import { HARNESS } from "../harness.js";
 import { defineHarness, type HarnessContext, type HarnessResult } from "../harness-types.js";
 import { resolveNebiusApiKey, resolveNebiusBaseUrl } from "../nebius-core.js";
@@ -30,9 +31,12 @@ export default defineHarness({
     // Model precedence: explicit --model wins and is remembered; otherwise fall
     // back to the last model used (persisted by the daemon on /model changes),
     // then the catalog default. A stale/invalid stored id safely falls back.
-    const requested = ctx.main ?? (await readAgentModelPreference("codex"));
-    const selectedModel = resolveCodexModelSafe(requested);
-    if (ctx.main) {
+    const invocation = extractCodexModelArg(ctx.passthrough ?? []);
+    const explicitModel = ctx.main ?? invocation.modelId;
+    const selectedModel = explicitModel
+      ? resolveCodexModel(explicitModel)
+      : resolveCodexModelSafe(await readAgentModelPreference("codex"));
+    if (explicitModel) {
       await recordAgentModel("codex", selectedModel.id);
     }
     const result = await runCodexNebius({
@@ -40,7 +44,7 @@ export default defineHarness({
       baseUrl: resolveNebiusBaseUrl(),
       home: ctx.home,
       modelId: selectedModel.id,
-      ...(ctx.passthrough ? { args: ctx.passthrough } : {}),
+      args: invocation.args,
     });
     if (typeof result.status === "number") {
       process.exitCode = result.status;

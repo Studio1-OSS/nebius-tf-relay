@@ -571,15 +571,16 @@ function toChatMessageContent(
       if (part.type === "input_text" || part.type === "output_text" || part.type === "text") {
         return part.text ? { type: "text", text: part.text } : undefined;
       }
-      if (
-        (part.type === "input_image" || part.type === "image_url") &&
-        typeof part.image_url === "string"
-      ) {
+      if (part.type === "input_image" || part.type === "image_url") {
+        const url = typeof part.image_url === "string" ? part.image_url : part.image_url?.url;
+        const detail =
+          part.detail ?? (typeof part.image_url === "object" ? part.image_url?.detail : undefined);
+        if (typeof url !== "string" || !url.trim()) return undefined;
         return {
           type: "image_url",
           image_url: {
-            url: part.image_url,
-            ...(part.detail ? { detail: part.detail } : {}),
+            url,
+            ...(detail ? { detail } : {}),
           },
         };
       }

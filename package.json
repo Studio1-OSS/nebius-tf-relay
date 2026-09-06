@@ -1,6 +1,6 @@
 {
   "name": "nebiusrelay",
-  "version": "0.15.2",
+  "version": "0.15.3",
   "private": true,
   "description": "Use Nebius Token Factory models in Claude Code, Codex, OpenCode, Pi, Prime Agent, Hermes, DeepSeek Harness, and Grok Build",
   "license": "MIT",
@@ -17,7 +17,7 @@
     "format:check": "oxfmt --check .",
     "hooks:install": "lefthook install",
     "test": "pnpm -F @nebiusrelay/tests test",
-    "test:offline": "pnpm -F @nebiusrelay/tests test:offline",
+    "test:offline": "pnpm --filter @nebiusrelay/cli... build && pnpm -F @nebiusrelay/tests test:offline",
     "bench:proxy": "pnpm -F @nebiusrelay/tests bench:proxy",
     "capture:proxy-fixtures": "pnpm -F @nebiusrelay/tests capture:proxy-fixtures",
     "watch": "pnpm dev",

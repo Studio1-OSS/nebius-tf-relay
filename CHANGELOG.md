@@ -3,6 +3,26 @@
 User-visible changes to Nebius TF Relay, newest first. This changelog starts at
 0.14.0; earlier release history remains in Git.
 
+## 0.15.3 - 2026-09-07
+
+### Fixed
+
+- `nebiusrelay configure` no longer crashes on untouched or navigation-key
+  password input (#3). The Clack patch initializes password state, guards empty
+  rendering, and keeps Bun readline input masked instead of echoing secrets.
+- `ncodex --model` and `-m` honor the requested model. Invalid explicit model
+  names fail clearly rather than silently selecting a remembered/default model.
+- Codex image-file arguments and literal prompt separators are preserved, and
+  both string and nested image URLs survive Responses-to-chat translation.
+  Image input still requires a vision-capable model and native harness support.
+- The installer works with POSIX shells without `pipefail`, including dash.
+
+### Added
+
+- Regression coverage for configure/password input, Codex model and image
+  arguments, request image translation, and repeat installs of all eight wrappers.
+- Documentation for Codex vision-model selection and image-file attachments.
+
 ## 0.15.2 - 2026-09-01
 
 ### Fixed

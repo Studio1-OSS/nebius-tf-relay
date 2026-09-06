@@ -12,7 +12,11 @@
 # After install, the CLI prompts once for a Nebius API key on first use
 # (Enter skips - the key is optional). The CLI self-updates in the background.
 
-set -euo pipefail
+set -eu
+# The public command pipes this script into sh, which may be dash on Linux.
+if (set -o pipefail) 2>/dev/null; then
+  set -o pipefail
+fi
 
 ORIGIN="${NEBIUSRELAY_ORIGIN:-https://nebius-tf-relay.vercel.app}"
 INSTALL_DIR="${NEBIUSRELAY_HOME:-$HOME/.nebiusrelay}"

@@ -24,6 +24,7 @@
     "capture:proxy-fixtures": "pnpm -F @nebiusrelay/cli build && node scripts/capture-proxy-fixtures.mjs"
   },
   "devDependencies": {
+    "@clack/prompts": "^0.8.2",
     "@nebiusrelay/cli": "workspace:*",
     "@nebiusrelay/models": "workspace:*",
     "@types/node": "^26.0.0",
