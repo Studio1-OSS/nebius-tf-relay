@@ -8,7 +8,7 @@ Run your local coding agents on [Nebius Token Factory](https://tokenfactory.nebi
 
 ---
 
-Checkout this Youtube video tutorial: [![Watch the video](https://youtube.com)](https://www.youtube.com/watch?v=u8c_exTe2To)
+Checkout this Youtube video tutorial: [K3 with Any Harness](https://www.youtube.com/watch?v=u8c_exTe2To)
 
 ```bash
 curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh
