@@ -13,6 +13,22 @@
 import type { NebiusApiModel } from "./index.js";
 
 export const CATALOG_SNAPSHOT: readonly NebiusApiModel[] = [
+  // Verified against Nebius GET /v1/models?verbose=true on 2026-09-11.
+  // Max output is not published there; retain the catalog's conservative default.
+  {
+    id: "zai-org/GLM-5.3",
+    name: "GLM-5.3",
+    context_length: 1024000,
+    architecture: { modality: "text->text" },
+    pricing: { prompt: "0.0000014", completion: "0.0000044", image: "0" },
+  },
+  {
+    id: "deepseek-ai/DeepSeek-V4-Pro-0813",
+    name: "DeepSeek-V4-Pro-0813",
+    context_length: 979000,
+    architecture: { modality: "text->text" },
+    pricing: { prompt: "0.00000132", completion: "0.00000396", image: "0" },
+  },
   {
     id: "Qwen/Qwen2.5-VL-72B-Instruct",
     name: "Qwen2.5-VL-72B-Instruct",

@@ -160,6 +160,8 @@ const features = [
 
 const modelHighlights = [
   { name: "GLM 5.3 Flash", note: "default · 1M context" },
+  { name: "GLM 5.3", note: "coding and tool use" },
+  { name: "DeepSeek V4 Pro 0813", note: "979K context" },
   { name: "Kimi K3", note: "frontier coding" },
   { name: "Kimi K2.6", note: "vision" },
   { name: "DeepSeek V4 Flash", note: "fast 1M context" },

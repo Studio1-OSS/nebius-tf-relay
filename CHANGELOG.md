@@ -3,6 +3,18 @@
 User-visible changes to Nebius TF Relay, newest first. This changelog starts at
 0.14.0; earlier release history remains in Git.
 
+## 0.15.4 - 2026-09-11
+
+### Added
+
+- GLM 5.3 (`zai-org/GLM-5.3`) and DeepSeek V4 Pro 0813
+  (`deepseek-ai/DeepSeek-V4-Pro-0813`) in the shared model catalog, with Claude
+  aliases and offline fallback metadata verified against Nebius's verbose API.
+  Live pricing and context limits take precedence when available. The default
+  remains GLM 5.3 Flash.
+- Updated landing-page and documentation model lists, model-selection examples,
+  and the LLM-readable guide's default-model and Codex flag guidance.
+
 ## 0.15.3 - 2026-09-07
 
 ### Fixed

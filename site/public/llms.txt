@@ -102,7 +102,7 @@ Backups of your original config live under `~/.nebiusrelay/backup/codex-app/`.
 
 ## Models
 
-The model list is fetched live from Nebius (`GET /v1/models?verbose=true`) at startup, so every model Nebius serves is available and each model's vision support (modality) comes straight from the API, not a hand-maintained list. Results are cached in `~/.nebiusrelay/model-catalog.json` and fall back to a bundled snapshot when offline. The default for Codex and Claude Code is Kimi K3.
+The model list is fetched live from Nebius (`GET /v1/models?verbose=true`) at startup, so every model Nebius serves is available and each model's vision support (modality) comes straight from the API, not a hand-maintained list. Results are cached in `~/.nebiusrelay/model-catalog.json` and fall back to a bundled snapshot when offline. The default for Codex and Claude Code is GLM 5.3 Flash.
 
 ### Selecting a model (flag order matters)
 
@@ -114,11 +114,14 @@ nebiusrelay --model moonshotai/Kimi-K2.6 claude -p "task"
 nebiusrelay --main nebius-kimi-k2-7-code claude -p "task"   # Claude matches alias OR id
 ```
 
-Do NOT put `--model` after the harness (e.g. `ncodex --model X` or `nclaude --model X`). The short aliases expand to `nebiusrelay <harness> ...`, so the flag lands after the harness name, goes to the agent's passthrough, and is then stripped - it is silently ignored and the run uses the default (Kimi K3), not the model you asked for. Always use the long form with the flag first.
+The long form above works across harnesses. Since Relay 0.15.3, Codex also supports `ncodex --model MODEL_ID` and `ncodex -m MODEL_ID`; invalid explicit model names fail instead of silently using the default.
 
 Featured flagship models (any live Nebius id also works with `--model`):
 
-- `moonshotai/Kimi-K3` - Kimi K3. Text-only, reasoning + agentic coding. The default coding model (note: Nebius capacity for K3 can be flaky).
+- `zai-org/GLM-5.3-Flash` - GLM 5.3 Flash. The default coding model, text-only, 1M context.
+- `zai-org/GLM-5.3` - GLM 5.3. Text-only, coding and tool use, 1,024,000 context. Bundled since 0.15.4; Claude alias: `nebius-glm-5-3`.
+- `deepseek-ai/DeepSeek-V4-Pro-0813` - DeepSeek V4 Pro 0813. Text-only, reasoning and agentic coding, 979,000 context. Bundled since 0.15.4; Claude alias: `nebius-deepseek-v4-pro-0813`.
+- `moonshotai/Kimi-K3` - Kimi K3. Text-only, reasoning + agentic coding.
 - `moonshotai/Kimi-K2.6` - Kimi K2.6. Vision + reasoning, 262K context. The vision flagship.
 - `moonshotai/Kimi-K2.7-Code` - Kimi K2.7 Code. Text-only coding model, 262K context.
 - `MiniMaxAI/MiniMax-M3` - MiniMax M3. Text-only, 196K context, fast and cheap.
