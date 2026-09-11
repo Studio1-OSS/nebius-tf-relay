@@ -73,6 +73,8 @@ const harnesses = [
 
 const models = [
   ["GLM 5.3 Flash", "Fast, very low cost, agentic", "1M", "No", true],
+  ["GLM 5.3", "Coding, reasoning, tool use", "1,024K", "No", false],
+  ["DeepSeek V4 Pro 0813", "Reasoning and agentic coding", "979K", "No", false],
   ["Kimi K3", "Frontier coding + agentic", "1M", "No", false],
   ["Kimi K2.6", "Vision flagship", "262K", "Yes", false],
   ["Kimi K2.7 Code", "Coding", "262K", "No", false],
@@ -442,6 +444,14 @@ function Docs() {
                 </Row>
               ))}
             </Table>
+            <P>
+              Relay 0.15.4 adds bundled support for GLM 5.3 and DeepSeek V4 Pro 0813. GLM 5.3 Flash
+              remains the default. Select either new model explicitly:
+            </P>
+            <pre className="mt-3 overflow-x-auto rounded-lg bg-code px-4 py-3 font-mono text-[13px] leading-relaxed text-muted">
+              <code>{`nebiusrelay --model zai-org/GLM-5.3 codex
+nebiusrelay --model deepseek-ai/DeepSeek-V4-Pro-0813 codex`}</code>
+            </pre>
             <Callout>
               In Codex, select a vision-capable model before attaching images. Claude Code uses a
               separate vision-description path. Image input controls depend on your harness and

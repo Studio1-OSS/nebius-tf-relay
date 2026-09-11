@@ -127,6 +127,16 @@ type ModelOverride = {
 };
 
 const CURATED_OVERRIDES: Record<string, ModelOverride> = {
+  "zai-org/GLM-5.3": {
+    name: "GLM 5.3",
+    anthropicAlias: "nebius-glm-5-3",
+    order: 2,
+  },
+  "deepseek-ai/DeepSeek-V4-Pro-0813": {
+    name: "DeepSeek V4 Pro 0813",
+    anthropicAlias: "nebius-deepseek-v4-pro-0813",
+    order: 3,
+  },
   "zai-org/GLM-5.2": {
     name: "GLM 5.2",
     anthropicAlias: "nebius-glm-5-2",
@@ -208,6 +218,8 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
  * endpoint catches up, not for resurrecting every model Nebius has removed.
  */
 const BUNDLED_FALLBACK_MODEL_IDS: ReadonlySet<string> = new Set([
+  "zai-org/GLM-5.3",
+  "deepseek-ai/DeepSeek-V4-Pro-0813",
   "deepseek-ai/DeepSeek-V4-Flash",
   "deepseek-ai/DeepSeek-V4-Pro",
 ]);
@@ -450,6 +462,10 @@ function fromSnapshot(id: string): ModelDefinition {
  * catalog uses the getters below instead.
  */
 export const GLM_5_2: ModelDefinition = fromSnapshot("zai-org/GLM-5.2");
+export const GLM_5_3: ModelDefinition = fromSnapshot("zai-org/GLM-5.3");
+export const DEEPSEEK_V4_PRO_0813: ModelDefinition = fromSnapshot(
+  "deepseek-ai/DeepSeek-V4-Pro-0813",
+);
 export const KIMI_K2_6: ModelDefinition = fromSnapshot("moonshotai/Kimi-K2.6");
 export const KIMI_K2_7_CODE: ModelDefinition = fromSnapshot("moonshotai/Kimi-K2.7-Code");
 export const MINIMAX_M3: ModelDefinition = fromSnapshot("MiniMaxAI/MiniMax-M3");
