@@ -69,6 +69,12 @@ const harnesses = [
   ["Hermes Agent", "nhermes", "Spawned", "Nous Research's agent, isolated home overlay."],
   ["DeepSeek Harness", "ndeepseek", "Spawned", "DeepSeek's web profile with Nebius layered in."],
   ["Grok Build", "ngrok", "Spawned", "xAI's terminal harness; your key never reaches api.x.ai."],
+  [
+    "Unreal Agent",
+    "nunreal",
+    "Proxied",
+    "Unreal Labs' async-first runner; its Responses API traffic translated to Nebius.",
+  ],
 ];
 
 const models = [

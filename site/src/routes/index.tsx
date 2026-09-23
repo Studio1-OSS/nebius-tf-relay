@@ -99,6 +99,14 @@ const agents: Agent[] = [
     blurb:
       "PrimeIntellect's RLM agent, with its persistent IPython tool and subagents running on Nebius models. Your own Prime config stays untouched.",
   },
+  {
+    name: "Unreal Agent",
+    command: "nunreal",
+    status: "Proxied",
+    mark: <UnrealMark />,
+    blurb:
+      "Unreal Labs' async-first harness speaks only the OpenAI Responses API, so the relay translates it to Nebius the same way it does for Codex. Configured purely through env vars for that run.",
+  },
 ];
 
 const steps = [
@@ -142,7 +150,7 @@ const steps = [
 const features = [
   {
     title: "One relay, eight harnesses",
-    body: "Claude Code, Codex, OpenCode, Pi Code, Prime Agent, Hermes, DeepSeek Harness, and Grok Build all run on Nebius open models through a single local install.",
+    body: "Claude Code, Codex, OpenCode, Pi Code, Prime Agent, Hermes, DeepSeek Harness, Grok Build, and Unreal Agent all run on Nebius open models through a single local install.",
   },
   {
     title: "Live web search, built in",
@@ -642,6 +650,17 @@ function GrokMark() {
         d="M325.226 695.251C206.128 580.84 226.662 403.776 328.285 301.668c75.146-75.571 198.264-106.414 305.741-61.072l115.428-53.602c-20.797-15.114-47.447-31.371-78.03-42.794-138.234-57.206-303.731-28.735-416.101 84.182-108.089 108.699-142.079 275.833-83.71 418.451 43.603 106.59-27.874 181.985-99.875 258.083C46.224 931.893 20.622 958.87 0 987.429l325.139-292.09"
       />
     </svg>
+  );
+}
+function UnrealMark() {
+  // Unreal Labs ship their mark (the hand-drawn smiley) as artwork, not a path.
+  return (
+    <img
+      className="size-[22px] rounded-[5px] object-cover outline outline-1 -outline-offset-1 outline-black/10"
+      src="/unreal-icon.png"
+      alt=""
+      aria-hidden="true"
+    />
   );
 }
 function PrimeMark() {

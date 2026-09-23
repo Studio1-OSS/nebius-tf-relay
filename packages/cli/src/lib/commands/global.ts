@@ -36,8 +36,9 @@ Usage:
   nebiusrelay hermes [...]      (alias: nhermes; "hermes desktop" for the app)
   nebiusrelay deepseek [...]    (alpha, alias: ndeepseek)
   nebiusrelay grok [...]        (alias: ngrok; Grok's UI on Nebius models)
+  nebiusrelay unreal [...]      (alias: nunreal; Unreal Agent runner on Nebius models)
 
-Extra args after codex/claude/pi/opencode/prime are passed through.
+Extra args after codex/claude/pi/opencode/prime/unreal are passed through.
 ChatGPT App support is alpha. The managed ~/.codex/config.toml is shared with the
 Codex CLI, so "chatgpt off" (or "codex off") restores both.
 

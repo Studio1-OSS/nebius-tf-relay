@@ -6,7 +6,7 @@
   "scripts": {
     "typecheck": "pnpm --filter @nebiusrelay/cli build && tsc -p tsconfig.json --noEmit",
     "test": "node scripts/run-vitest.mjs",
-    "test:offline": "vitest run --config vitest.config.ts --exclude '**/Claude.test.ts' --exclude '**/Codex.test.ts' --exclude '**/OpenCode.test.ts' --exclude '**/Pi.test.ts' --exclude '**/livemodelscheck.test.ts' --exclude '**/daemon-session-auth.test.ts' --exclude '**/LiveSmoke.test.ts' --exclude '**/LiveCodexResume.test.ts'",
+    "test:offline": "vitest run --config vitest.config.ts --exclude '**/Claude.test.ts' --exclude '**/Codex.test.ts' --exclude '**/OpenCode.test.ts' --exclude '**/Pi.test.ts' --exclude '**/Unreal.test.ts' --exclude '**/livemodelscheck.test.ts' --exclude '**/daemon-session-auth.test.ts' --exclude '**/LiveSmoke.test.ts' --exclude '**/LiveCodexResume.test.ts'",
     "test:live-smoke": "NEBIUSRELAY_LIVE_SMOKE=1 node scripts/run-vitest.mjs src/LiveSmoke.test.ts",
     "test:live-codex-resume": "NEBIUSRELAY_LIVE_CODEX_RESUME=1 VITEST_FILE_PARALLELISM=0 node scripts/run-vitest.mjs src/LiveCodexResume.test.ts",
     "test:live-models-check": "NEBIUSRELAY_LIVE_MODELS_CHECK=1 VITEST_MAX_CONCURRENCY=${VITEST_MAX_CONCURRENCY:-6} node scripts/run-vitest.mjs src/livemodelscheck.test.ts",
@@ -20,6 +20,7 @@
     "test:gauntlet:live-models-check": "NEBIUSRELAY_LIVE_MODELS_CHECK=1 VITEST_MAX_CONCURRENCY=${VITEST_MAX_CONCURRENCY:-6} vitest run --config vitest.config.ts src/livemodelscheck.test.ts",
     "test:gauntlet:opencode": "vitest run --config vitest.config.ts src/OpenCode.test.ts",
     "test:gauntlet:pi": "vitest run --config vitest.config.ts src/Pi.test.ts",
+    "test:gauntlet:unreal": "vitest run --config vitest.config.ts src/Unreal.test.ts",
     "bench:proxy": "pnpm -F @nebiusrelay/cli build && pnpm exec vitest run --config vitest.bench.config.ts benchmarks/proxy-performance.bench.ts --reporter verbose",
     "capture:proxy-fixtures": "pnpm -F @nebiusrelay/cli build && node scripts/capture-proxy-fixtures.mjs"
   },

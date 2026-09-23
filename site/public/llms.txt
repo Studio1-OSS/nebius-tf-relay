@@ -1,8 +1,8 @@
 # nebiusrelay
 
-> Use Nebius Token Factory models in the coding-agent CLIs you already run - OpenCode, Claude Code, Codex CLI, Pi Code, and Prime Agent. nebiusrelay injects Nebius settings for a single run so your normal tool configs stay untouched.
+> Use Nebius Token Factory models in the coding-agent CLIs you already run - OpenCode, Claude Code, Codex CLI, Pi Code, Prime Agent, and Unreal Agent. nebiusrelay injects Nebius settings for a single run so your normal tool configs stay untouched.
 
-nebiusrelay is an MIT-licensed CLI router. Install once, then launch your agent with short commands (`ncodex`, `nclaude`, `nopencode`, `npi`, `nprime`). For Claude Code and Codex CLI it routes the agent's API traffic to Nebius Token Factory through a local translation proxy; for OpenCode, Pi Code, and Prime Agent it injects per-run provider config (they already speak Nebius's OpenAI-compatible format, so no proxy is needed). The installed binary keeps itself up to date automatically from nebius-tf-relay.vercel.app.
+nebiusrelay is an MIT-licensed CLI router. Install once, then launch your agent with short commands (`ncodex`, `nclaude`, `nopencode`, `npi`, `nprime`, `nunreal`). For Claude Code, Codex CLI, and Unreal Agent it routes the agent's API traffic to Nebius Token Factory through a local translation proxy; for OpenCode, Pi Code, and Prime Agent it injects per-run provider config (they already speak Nebius's OpenAI-compatible format, so no proxy is needed). The installed binary keeps itself up to date automatically from nebius-tf-relay.vercel.app.
 
 This is the LLM-readable documentation file for the project. If you are an AI agent asked to install, configure, or use nebiusrelay (headless or interactive), read this file first. It covers installation, configuration, every command, the available models, headless/agentic usage patterns, how to keep the tool up to date, and the routing architecture.
 
@@ -15,7 +15,7 @@ This is the LLM-readable documentation file for the project. If you are an AI ag
 
 ## Install
 
-One command installs the `nebiusrelay`, `nclaude`, `nopencode`, `ncodex`, `npi`, and `nprime` commands to `~/.nebiusrelay/bin/` and installs Bun for you if it isn't already present:
+One command installs the `nebiusrelay`, `nclaude`, `nopencode`, `ncodex`, `npi`, `nprime`, and `nunreal` commands to `~/.nebiusrelay/bin/` and installs Bun for you if it isn't already present:
 
 ```
 curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh
@@ -24,7 +24,7 @@ curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh
 After install, restart your shell (or run the `export PATH=...` line it prints) so the commands are on PATH. The install:
 
 - Downloads the self-contained JS bundle to `~/.nebiusrelay/bin/nebiusrelay.js`.
-- Writes shell wrappers (`nebiusrelay`, `ncodex`, `nclaude`, `nopencode`, `npi`, `nprime`) that run the bundle with `bun`.
+- Writes shell wrappers (`nebiusrelay`, `ncodex`, `nclaude`, `nopencode`, `npi`, `nprime`, `nunreal`) that run the bundle with `bun`.
 - Links them into a writable directory on your PATH.
 - Does NOT install the underlying agent CLIs. If a tool is missing, nebiusrelay prints its official install command and exits (Prime Agent: `curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | sh`).
 
