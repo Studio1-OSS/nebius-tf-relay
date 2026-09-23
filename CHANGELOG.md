@@ -3,7 +3,7 @@
 User-visible changes to Nebius TF Relay, newest first. This changelog starts at
 0.14.0; earlier release history remains in Git.
 
-## Unreleased
+## 0.16.0 - 2026-09-23
 
 ### Added
 
@@ -12,6 +12,8 @@ User-visible changes to Nebius TF Relay, newest first. This changelog starts at
   through the daemon like Codex and gets the same cost metering, retries and
   model fallback. Configured entirely through env vars for the run; the Nebius
   key stays inside the daemon.
+  A bare `nunreal` (or picking it from the launcher menu) asks for the task
+  instead of waiting silently on stdin.
 
 ## 0.15.4 - 2026-09-11
 
