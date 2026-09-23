@@ -56,11 +56,38 @@ export function buildUnrealEnv(
   };
 }
 
+/**
+ * With no request on the command line the runner blocks reading a JSON
+ * request from stdin, which in a terminal looks like a hang. When that is the
+ * situation (nothing to run, interactive stdin) we ask for the task instead
+ * and hand it over as `-p`. Piped input and explicit requests are untouched.
+ */
+export function needsTaskPrompt(args: readonly string[], stdinIsTTY: boolean): boolean {
+  return stdinIsTTY && args.length === 0;
+}
+
+async function askForTask(): Promise<string[]> {
+  const clack = await import("@clack/prompts");
+  const task = await clack.text({
+    message: "What should Unreal Agent do? (next time: nunreal -- -p 'task')",
+    placeholder: "Inspect this project and explain how to run its tests.",
+    validate: (value) => (value.trim() ? undefined : "Enter a task, or Ctrl-C to quit."),
+  });
+  if (clack.isCancel(task)) {
+    clack.cancel("Cancelled.");
+    process.exit(130);
+  }
+  return ["-p", task];
+}
+
 export async function runUnrealNebius(options: UnrealLaunchOptions): Promise<ProxiedSessionResult> {
   // `--model` before the runner's own flags picks the Nebius model; everything
   // else is passed to `unreal-agent-runner` untouched (-p, -workspace, JSON).
   const invocation = extractCodexModelArg(options.args ?? []);
   const selectedModel = resolveCodexModel(options.modelId ?? invocation.modelId);
+  if (needsTaskPrompt(invocation.args, Boolean(process.stdin.isTTY))) {
+    invocation.args = await askForTask();
+  }
   return runProxiedSession({
     agent: "unreal",
     apiKey: options.apiKey,
