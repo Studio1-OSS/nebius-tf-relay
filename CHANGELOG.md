@@ -3,6 +3,16 @@
 User-visible changes to Nebius TF Relay, newest first. This changelog starts at
 0.14.0; earlier release history remains in Git.
 
+## 0.16.1 - 2026-09-23
+
+### Fixed
+
+- `nunreal` in a terminal now prints readable output - the assistant's replies
+  and the tools it calls - instead of the runner's raw JSON event log. Piped
+  output is unchanged, so scripts still get the JSONL.
+- `nunreal -- -workspace <dir>` with no task asks for one instead of waiting
+  silently on stdin; only `-p` or a positional JSON request counts as a task.
+
 ## 0.16.0 - 2026-09-23
 
 ### Added
