@@ -2,7 +2,12 @@ import { describe, expect, test } from "vitest";
 import { ALL_HARNESSES, HARNESS, HARNESS_BIN } from "../../cli/src/lib/harness.js";
 import { isHarnessImplemented } from "../../cli/src/lib/harness-registry.js";
 import { isProxiedAgent, speaksResponsesApi } from "../../cli/src/lib/daemon/state.js";
-import { buildUnrealEnv, UNREAL_BIN, UNREAL_ENV } from "../../cli/src/lib/unreal/core.js";
+import {
+  buildUnrealEnv,
+  needsTaskPrompt,
+  UNREAL_BIN,
+  UNREAL_ENV,
+} from "../../cli/src/lib/unreal/core.js";
 
 describe("unreal agent harness", () => {
   test("is registered as a proxied, Responses-speaking harness", () => {
@@ -31,5 +36,12 @@ describe("unreal agent harness", () => {
     expect(env.PATH).toBe("/usr/bin");
     // The daemon holds the Nebius key; the runner never sees it.
     expect(env.NEBIUS_API_KEY).toBeUndefined();
+  });
+
+  test("asks for a task only when launched interactively with nothing to run", () => {
+    expect(needsTaskPrompt([], true)).toBe(true);
+    expect(needsTaskPrompt([], false)).toBe(false); // piped JSON request
+    expect(needsTaskPrompt(["-p", "do it"], true)).toBe(false);
+    expect(needsTaskPrompt(['{"prompt":"x"}'], true)).toBe(false);
   });
 });
