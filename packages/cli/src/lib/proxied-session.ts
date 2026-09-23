@@ -88,6 +88,12 @@ export type ProxiedSessionSpec = {
   }) => string[];
   /** The binary to spawn (claude / codex). */
   binary: string;
+  /**
+   * Render the agent's stdout line by line instead of inheriting it. Return
+   * the text to print, or undefined to drop the line. Used for agents whose
+   * native output is machine-oriented (JSONL) when stdout is a terminal.
+   */
+  renderStdout?: (line: string) => string | undefined;
   /** Banner line written to stderr so the user knows this routes to Nebius. */
   banner: (modelName: string) => string;
   /** Label for keepalive logging (e.g. "Claude session"). */
@@ -168,9 +174,34 @@ export async function runProxiedSession(spec: ProxiedSessionSpec): Promise<Proxi
         modelName: spec.modelName,
         beforeSpawnResult,
       }),
-      stdio: "inherit",
+      stdio: spec.renderStdout ? ["inherit", "pipe", "inherit"] : "inherit",
     },
   );
+  if (spec.renderStdout && child.stdout) {
+    const render = spec.renderStdout;
+    let pending = "";
+    const flush = (text: string) => {
+      const rendered = render(text);
+      if (rendered) {
+        process.stdout.write(rendered);
+      }
+    };
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => {
+      pending += chunk;
+      let newline = pending.indexOf("\n");
+      while (newline >= 0) {
+        flush(pending.slice(0, newline));
+        pending = pending.slice(newline + 1);
+        newline = pending.indexOf("\n");
+      }
+    });
+    child.stdout.on("end", () => {
+      if (pending) {
+        flush(pending);
+      }
+    });
+  }
 
   if (!spec.preserveSessionAfterExit && typeof child.pid === "number") {
     try {

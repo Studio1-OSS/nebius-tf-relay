@@ -1,6 +1,7 @@
 import { resolveCodexModel } from "../codex/defaults.js";
 import { extractCodexModelArg } from "../codex/launch-args.js";
 import { runProxiedSession, type ProxiedSessionResult } from "../proxied-session.js";
+import { renderUnrealLine } from "./render.js";
 
 /**
  * Unreal Agent (Unreal Labs) - a proxied harness, like Codex.
@@ -63,7 +64,41 @@ export function buildUnrealEnv(
  * and hand it over as `-p`. Piped input and explicit requests are untouched.
  */
 export function needsTaskPrompt(args: readonly string[], stdinIsTTY: boolean): boolean {
-  return stdinIsTTY && args.length === 0;
+  return stdinIsTTY && !hasRunnerRequest(args);
+}
+
+/** Runner flags that take a value, so the value is not a positional request. */
+const RUNNER_VALUE_FLAGS = new Set([
+  "-workspace",
+  "--workspace",
+  "-session-directory",
+  "--session-directory",
+  "-log-directory",
+  "--log-directory",
+  "-tool-heartbeat-interval",
+  "--tool-heartbeat-interval",
+]);
+
+/** True when the args already carry a task: `-p <prompt>` or a positional JSON request. */
+export function hasRunnerRequest(args: readonly string[]): boolean {
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i]!;
+    if (arg === "-p" || arg === "--p") {
+      return true;
+    }
+    if (arg.startsWith("-p=") || arg.startsWith("--p=")) {
+      return true;
+    }
+    if (RUNNER_VALUE_FLAGS.has(arg)) {
+      i += 1;
+      continue;
+    }
+    if (arg.startsWith("-")) {
+      continue;
+    }
+    return true; // positional JSON request
+  }
+  return false;
 }
 
 async function askForTask(): Promise<string[]> {
@@ -103,5 +138,7 @@ export async function runUnrealNebius(options: UnrealLaunchOptions): Promise<Pro
       `Nebius TF Relay ▸ Routing Unreal Agent → Nebius Token Factory (${modelName}).\n`,
     buildEnv: (context) => buildUnrealEnv(process.env, context),
     buildArgs: ({ args }) => args,
+    // Raw JSONL when piped (scripts rely on it); readable text in a terminal.
+    ...(process.stdout.isTTY ? { renderStdout: renderUnrealLine } : {}),
   });
 }
