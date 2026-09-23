@@ -52,6 +52,7 @@ describe("public installer", () => {
         nhermes: "hermes",
         ndeepseek: "deepseek",
         ngrok: "grok",
+        nunreal: "unreal",
       })) {
         const output = execFileSync(
           path.join(tools, wrapper),

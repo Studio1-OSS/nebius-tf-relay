@@ -3,6 +3,16 @@
 User-visible changes to Nebius TF Relay, newest first. This changelog starts at
 0.14.0; earlier release history remains in Git.
 
+## Unreleased
+
+### Added
+
+- Unreal Agent (`nebiusrelay unreal`, alias `nunreal`): Unreal Labs' async-first
+  harness. Its runner speaks only the OpenAI Responses API, so it is proxied
+  through the daemon like Codex and gets the same cost metering, retries and
+  model fallback. Configured entirely through env vars for the run; the Nebius
+  key stays inside the daemon.
+
 ## 0.15.4 - 2026-09-11
 
 ### Added

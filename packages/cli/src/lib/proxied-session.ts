@@ -49,8 +49,8 @@ export type SessionCostResult = {
 };
 
 export type ProxiedSessionSpec = {
-  /** The agent id ("claude" / "codex") - used for registration + telemetry. */
-  agent: "claude" | "codex";
+  /** The agent id ("claude" / "codex" / "unreal") - used for registration + telemetry. */
+  agent: "claude" | "codex" | "unreal";
   apiKey: string;
   /** Upstream Nebius API root, resolved once by the launching CLI process. */
   baseUrl: string;
@@ -129,7 +129,7 @@ export async function runProxiedSession(spec: ProxiedSessionSpec): Promise<Proxi
     await registerDaemonSession(proxyUrl, registration);
   } catch (err) {
     throw new Error(
-      `Could not register this ${spec.agent === "claude" ? "Claude" : "Codex"} session with the nebiusrelay daemon: ${err instanceof Error ? err.message : String(err)}`,
+      `Could not register this ${spec.keepaliveLabel} with the nebiusrelay daemon: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
 

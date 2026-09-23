@@ -48,6 +48,8 @@ const ZERO_COST_SUMMARY = "[nebiusrelay cost] session total: $0.0000 (0 in, 0 ou
  *   translates it to Nebius chat completions.
  * - `codex-app`: same proxy path as `codex`, but registered by the persistent
  *   ChatGPT Desktop app integration so telemetry can distinguish it.
+ * - `unreal`: Unreal Agent's runner also speaks OpenAI Responses, so it rides
+ *   the same proxy path as `codex`.
  */
 export type AgentId =
   | "claude"
@@ -58,7 +60,8 @@ export type AgentId =
   | "prime"
   | "hermes"
   | "deepseek"
-  | "grok";
+  | "grok"
+  | "unreal";
 
 /**
  * One live coding-agent session, keyed by the random auth token the launcher
@@ -408,10 +411,17 @@ export class SessionRegistry {
 export const sessions = new SessionRegistry();
 
 /** Agents whose traffic the daemon proxies (vs. self-reporting cost). */
-const PROXIED_AGENTS = new Set<AgentId>(["claude", "codex", "codex-app"]);
+const PROXIED_AGENTS = new Set<AgentId>(["claude", "codex", "codex-app", "unreal"]);
 
 export function isProxiedAgent(agent: AgentId): boolean {
   return PROXIED_AGENTS.has(agent);
+}
+
+/** Proxied agents that speak OpenAI Responses (vs. Anthropic Messages). */
+const RESPONSES_AGENTS = new Set<AgentId>(["codex", "codex-app", "unreal"]);
+
+export function speaksResponsesApi(agent: string | undefined): boolean {
+  return agent !== undefined && RESPONSES_AGENTS.has(agent as AgentId);
 }
 
 /**

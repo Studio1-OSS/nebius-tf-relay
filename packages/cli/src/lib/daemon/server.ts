@@ -23,6 +23,7 @@ import {
   type SessionState,
   type UsageReportRequest,
   isProxiedAgent,
+  speaksResponsesApi,
 } from "./state.js";
 
 /** Active registry - runDaemon may override this with an injected one. */
@@ -144,7 +145,7 @@ export function renderDaemonError(
     }
     return;
   }
-  if (agent === "codex" || agent === "codex-app") {
+  if (speaksResponsesApi(agent)) {
     if (isNebiusApiError(err)) {
       writeOpenAIError(res, err.anthropicStatus, err.anthropicType, err.message);
       return;
@@ -468,7 +469,7 @@ async function handleDaemonRequest(
     delete req.headers["x-api-key"];
   }
 
-  if (session.agent === "codex" || session.agent === "codex-app") {
+  if (speaksResponsesApi(session.agent)) {
     try {
       await handleCodexProxyRequest(req, res, session.options);
     } finally {
